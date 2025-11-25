@@ -1,294 +1,199 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AlertTriangle, Plus, Trash2, Phone } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2, Phone, ArrowLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import axios from "axios";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom"; // ✅ Import useNavigate
+
+const emergencyNumbers = {
+  USA: "911",
+  Canada: "911",
+  UK: "999",
+  EU: "112",
+  Australia: "000",
+  India: "112",
+  Japan: "110",
+};
 
 const Emergency = () => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const navigate = useNavigate(); // ✅ Initialize navigate
   const [contacts, setContacts] = useState([]);
+  const [newContact, setNewContact] = useState({ name: "", phone: "", relation: "" });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [sosDialogOpen, setSosDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchContacts();
-    }
-  }, [user]);
 
   const fetchContacts = async () => {
     try {
-      const { data, error } = await supabase
-        .from("emergency_contacts")
-        .select("*")
-        .eq("user_id", user?.id)
-        .order("created_at", { ascending: true });
-
-      if (error) throw error;
-      setContacts(data || []);
+      const res = await axios.get("http://localhost:5000/api/traveler/viewemergency");
+      console.log(res.data);
+      setContacts(res.data.data || []);
     } catch (error) {
-      toast({
-        title: "Error loading contacts",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error(error);
+      toast.error("Failed to fetch contacts");
     }
   };
 
-  const handleAddContact = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  useEffect(() => {
+    fetchContacts();
+  }, []);
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewContact({ ...newContact, [name]: value });
+  };
+
+  const handleAddContact = async () => {
+    if (!newContact.name || !newContact.phone || !newContact.relation) {
+      toast.error("Please fill all fields!");
+      return;
+    }
     try {
-      const { error } = await supabase.from("emergency_contacts").insert({
-        name: formData.get("name"),
-        phone: formData.get("phone"),
-        relationship: formData.get("relationship"),
-        user_id: user?.id,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success!",
-        description: "Emergency contact added.",
-      });
-
+      await axios.post("http://localhost:5000/api/traveler/emergency", newContact);
+      toast.success("Emergency contact added successfully!");
+      setNewContact({ name: "", phone: "", relation: "" });
       setDialogOpen(false);
       fetchContacts();
     } catch (error) {
-      toast({
-        title: "Error adding contact",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error(error);
+      toast.error("Failed to add contact");
     }
   };
 
-  const deleteContact = async (contactId) => {
+  const handleDeleteContact = async (id) => {
     try {
-      const { error } = await supabase
-        .from("emergency_contacts")
-        .delete()
-        .eq("id", contactId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Contact deleted.",
-      });
-
-      fetchContacts();
+      await axios.delete(`http://localhost:5000/api/traveler/emergency/${id}`);
+      toast.success("Contact deleted successfully!");
+      setContacts(contacts.filter((contact) => contact._id !== id));
     } catch (error) {
-      toast({
-        title: "Error deleting contact",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error(error);
+      toast.error("Failed to delete contact");
     }
   };
-
-  const triggerSOS = () => {
-    setSosDialogOpen(true);
-  };
-
-  if (loading || !user) {
-    return <div className="min-h-screen bg-background" />;
-  }
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <div className="container mx-auto px-4 pt-5 pb-12 max-w-6xl">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          className="mb-4 flex items-center gap-2"
+          onClick={() => navigate("/dash/dashboard")}
+        >
+          <ArrowLeft className="w-4 h-4" /> 
+        </Button>
 
-      <div className="container mx-auto px-4 pt-24 pb-12 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-destructive">Emergency & Safety</h1>
-          <p className="text-muted-foreground">Manage your emergency contacts and quick access to help</p>
-        </div>
-
-        {/* SOS Button */}
-        <Card className="mb-8 border-destructive">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <Button
-                size="lg"
-                variant="destructive"
-                className="h-32 w-32 rounded-full text-xl font-bold"
-                onClick={triggerSOS}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <AlertTriangle className="h-12 w-12" />
-                  SOS
-                </div>
-              </Button>
-              <p className="mt-4 text-sm text-muted-foreground">
-                Press for immediate emergency assistance
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <h1 className="text-4xl font-bold mb-2 text-destructive">Emergency & Safety</h1>
+        <p className="text-muted-foreground pb-5">
+          Manage your emergency contacts and quick access to help
+        </p>
 
         {/* Emergency Contacts */}
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Emergency Contacts</CardTitle>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Contact
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Emergency Contact</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAddContact} className="space-y-4">
-                    <div>
-                      <Label htmlFor="name">Name</Label>
-                      <Input id="name" name="name" required />
+            <CardTitle>
+              <div className="flex justify-between items-center">
+                <div>Emergency Contacts</div>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="text-lg px-4 py-2 bg-blue-400 text-white rounded-lg flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> Add Contact
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>Add Emergency Contact</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-3 mt-4">
+                      <label className="text-sm font-medium">Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={newContact.name}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md border-gray-300 focus:outline-none focus:border-blue-500 hover:border-blue-500 transition"
+                      />
+                      <label className="text-sm font-medium">Phone Number</label>
+                      <input
+                        type="text"
+                        name="phone"
+                        value={newContact.phone}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md border-gray-300 focus:outline-none focus:border-blue-500 hover:border-blue-500 transition"
+                      />
+                      <label className="text-sm font-medium">Relationship</label>
+                      <input
+                        type="text"
+                        name="relation"
+                        placeholder="family, friend, etc"
+                        value={newContact.relation}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md border-gray-300 focus:outline-none focus:border-blue-500 hover:border-blue-500 transition"
+                      />
                     </div>
-                    <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input id="phone" name="phone" type="tel" required />
-                    </div>
-                    <div>
-                      <Label htmlFor="relationship">Relationship</Label>
-                      <Input id="relationship" name="relationship" placeholder="e.g., Family, Friend" required />
-                    </div>
-                    <Button type="submit" className="w-full">Add Contact</Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+                    <DialogFooter>
+                      <Button onClick={handleAddContact}>Add</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {contacts.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No emergency contacts yet. Add someone you trust.
-              </p>
+              <p className="text-muted-foreground">No emergency contacts added yet.</p>
             ) : (
-              <div className="space-y-3">
-                {contacts.map((contact) => (
-                  <div
-                    key={contact.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium">{contact.name}</p>
-                      <p className="text-sm text-muted-foreground">{contact.relationship}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Phone className="h-4 w-4 text-primary" />
-                        <a 
-                          href={`tel:${contact.phone}`}
-                          className="text-sm text-primary hover:underline"
-                        >
-                          {contact.phone}
-                        </a>
-                      </div>
+              contacts.map((contact) => (
+                <div
+                  key={contact._id}
+                  className="flex items-center justify-between p-4 rounded-lg border mb-2"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{contact.name}</p>
+                    <p className="text-sm text-muted-foreground">{contact.relation}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Phone className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-primary">{contact.phone}</span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => deleteContact(contact.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </div>
-                ))}
-              </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteContact(contact._id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))
             )}
           </CardContent>
         </Card>
 
-        {/* Global Emergency Numbers */}
+        {/* Global Numbers */}
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>Global Emergency Numbers</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-lg border border-border">
-                <p className="font-medium mb-1">USA/Canada</p>
-                <a href="tel:911" className="text-primary text-lg font-bold">911</a>
+          <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {Object.entries(emergencyNumbers).map(([country, number], idx) => (
+              <div key={idx} className="p-4 rounded-lg border">
+                <p className="font-medium mb-1">{country}</p>
+                <span className="text-primary text-lg font-bold">{number}</span>
               </div>
-              <div className="p-4 rounded-lg border border-border">
-                <p className="font-medium mb-1">UK</p>
-                <a href="tel:999" className="text-primary text-lg font-bold">999</a>
-              </div>
-              <div className="p-4 rounded-lg border border-border">
-                <p className="font-medium mb-1">EU</p>
-                <a href="tel:112" className="text-primary text-lg font-bold">112</a>
-              </div>
-              <div className="p-4 rounded-lg border border-border">
-                <p className="font-medium mb-1">Australia</p>
-                <a href="tel:000" className="text-primary text-lg font-bold">000</a>
-              </div>
-              <div className="p-4 rounded-lg border border-border">
-                <p className="font-medium mb-1">India</p>
-                <a href="tel:112" className="text-primary text-lg font-bold">112</a>
-              </div>
-              <div className="p-4 rounded-lg border border-border">
-                <p className="font-medium mb-1">Japan</p>
-                <a href="tel:110" className="text-primary text-lg font-bold">110</a>
-              </div>
-            </div>
+            ))}
           </CardContent>
         </Card>
       </div>
-
-      <AlertDialog open={sosDialogOpen} onOpenChange={setSosDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-6 w-6" />
-              Emergency SOS Activated
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Your emergency contacts will be notified of your situation. Local emergency services number: 911
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setSosDialogOpen(false)}>
-              Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };
 
 export default Emergency;
+

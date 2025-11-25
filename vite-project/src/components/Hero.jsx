@@ -53,7 +53,7 @@ const Hero = () => {
             <Button
               size="lg"
               className="text-base px-8"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/auth")}
             >
               <Users className="mr-2 h-5 w-5" />
               Join a Trip
@@ -62,7 +62,7 @@ const Hero = () => {
               size="lg"
               variant="secondary"
               className="text-base px-8"
-              onClick={() => navigate("/organizer")}
+              onClick={() => navigate("/auth")}
             >
               <MapPin className="mr-2 h-5 w-5" />
               Create a Trip

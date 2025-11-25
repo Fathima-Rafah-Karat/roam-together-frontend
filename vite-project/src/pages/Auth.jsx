@@ -306,7 +306,7 @@ const Auth = () => {
 
     if (role === "admin") navigate("/admin/dashboard");
     else if (role === "organizer") navigate("/organizer/dashboard");
-    else navigate("/dashboard"); // default traveler
+    else navigate("/dash/dashboard"); // default traveler
   };
 
   // -------------------- SIGNUP --------------------

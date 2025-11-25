@@ -105,7 +105,7 @@ const FeaturedTrips = () => {
                       )}
                     </div>
                   </div>
-                  <Button size="sm" variant="default" onClick={() => navigate("/dashboard")}>
+                  <Button size="sm" variant="default" >
                     Join Trip
                   </Button>
                 </div>
@@ -115,7 +115,7 @@ const FeaturedTrips = () => {
         </div>
         
         <div className="text-center mt-12">
-          <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")}>
+          <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
             View All Trips
           </Button>
         </div>
