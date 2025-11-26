@@ -351,8 +351,6 @@ import {
   Bed,
   Car,
   Activity,
-  ChevronLeft,
-  ChevronRight,
   X as XIcon,
 } from "lucide-react";
 import {
@@ -364,7 +362,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useToast } from "@/components/ui/use-toast";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 

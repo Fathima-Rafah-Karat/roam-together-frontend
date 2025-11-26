@@ -1,86 +1,108 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, CheckCheck, Calendar, AlertCircle, MessageCircle } from "lucide-react";
+import { Bell, MessageCircle, Calendar, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Notification Data
-const notifications = [
-  {
-    id: 1,
-    type: "booking",
-    title: "Trip Confirmed",
-    message: "Your Bali Adventure trip has been confirmed! Get ready for an amazing experience.",
-    time: "2 hours ago",
-    read: false,
-    icon: CheckCheck,
-    variant: "success"
-  },
-  {
-    id: 2,
-    type: "update",
-    title: "Itinerary Update",
-    message: "The Swiss Alps Trek itinerary has been updated. Check the new schedule.",
-    time: "5 hours ago",
-    read: false,
-    icon: Calendar,
-    variant: "info"
-  },
-  {
-    id: 3,
-    type: "reminder",
-    title: "Departure Reminder",
-    message: "Your trip to Tokyo starts in 3 days. Don't forget to check your packing list!",
-    time: "1 day ago",
-    read: true,
-    icon: Bell,
-    variant: "warning"
-  },
-  {
-    id: 4,
-    type: "social",
-    title: "New Comment",
-    message: "Sarah commented on your blog post '10 Hidden Gems in Bali'",
-    time: "2 days ago",
-    read: true,
-    icon: MessageCircle,
-    variant: "default"
-  },
-  {
-    id: 5,
-    type: "alert",
-    title: "Weather Alert",
-    message: "Heavy rain expected in Bali on June 16. Plan indoor activities accordingly.",
-    time: "3 days ago",
-    read: true,
-    icon: AlertCircle,
-    variant: "destructive"
-  }
-];
+// Notification type → icon mapping
+const iconMap = {
+  info: MessageCircle,
+  trip: Calendar,
+  alert: AlertCircle,
+};
 
-// Icon color logic — JSX version
-const getIconColor = (variant) => {
-  switch (variant) {
-    case "success": return "text-green-600";
-    case "info": return "text-primary";
-    case "warning": return "text-amber-600";
-    case "destructive": return "text-destructive";
-    default: return "text-muted-foreground";
+// Icon color logic
+const getIconColor = (type) => {
+  switch (type) {
+    case "info":
+      return "text-primary";
+    case "trip":
+      return "text-green-600";
+    case "alert":
+      return "text-destructive";
+    default:
+      return "text-muted-foreground";
   }
 };
 
 export default function Notifications() {
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.error("No token found");
+        return;
+      }
+
+      const response = await axios.get(
+        "http://localhost:5000/api/traveler/notification/notify",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setNotifications(response.data.data || []);
+    } catch (err) {
+      console.error("Error loading notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Mark a notification as read
+  const markAsRead = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.patch(
+        `http://localhost:5000/api/traveler/notification/read/${id}`,
+        { isRead: true },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      fetchNotifications(); // refresh UI
+    } catch (err) {
+      console.error("Error marking as read:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  if (loading) return <p>Loading notifications...</p>;
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
             Notifications
           </h1>
+
           <p className="text-muted-foreground text-lg">
             Stay updated with your travel plans
             {unreadCount > 0 && (
@@ -90,7 +112,6 @@ export default function Notifications() {
             )}
           </p>
         </div>
-        <Button variant="outline">Mark all as read</Button>
       </div>
 
       {/* Tabs */}
@@ -101,72 +122,89 @@ export default function Notifications() {
           <TabsTrigger value="archived">Archived</TabsTrigger>
         </TabsList>
 
-        {/* All Notifications */}
+        {/* ALL Notifications */}
         <TabsContent value="all" className="space-y-3 mt-6">
-          {notifications.map((notification) => (
-            <Card
-              key={notification.id}
-              className={`transition-colors ${!notification.read ? "bg-primary/5 border-primary/20" : ""}`}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-3">
-                    <div className={`p-2 rounded-full bg-muted ${getIconColor(notification.variant)}`}>
-                      <notification.icon className="h-4 w-4" />
+          {notifications.map((n) => {
+            const Icon = iconMap[n.type] || Bell;
+
+            return (
+              <Card
+                key={n._id}
+                onClick={() => markAsRead(n._id)}
+                className={`cursor-pointer transition-colors ${
+                  !n.isRead ? "bg-primary/5 border-primary/20" : ""
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start gap-3">
+                    {/* ICON */}
+                    <div className={`p-2 rounded-full bg-muted ${getIconColor(n.type)}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
+
+                    {/* TEXT */}
                     <div className="space-y-1">
                       <CardTitle className="text-base flex items-center gap-2">
-                        {notification.title}
-                        {!notification.read && (
+                        {n.type.toUpperCase()}
+                        {!n.isRead && (
                           <span className="w-2 h-2 bg-primary rounded-full"></span>
                         )}
                       </CardTitle>
 
-                      <CardDescription className="text-sm">
-                        {notification.message}
-                      </CardDescription>
+                      <CardDescription>{n.message}</CardDescription>
 
-                      <p className="text-xs text-muted-foreground">{notification.time}</p>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </TabsContent>
-
-        {/* Unread Notifications */}
-        <TabsContent value="unread" className="space-y-3 mt-6">
-          {notifications
-            .filter((n) => !n.read)
-            .map((notification) => (
-              <Card key={notification.id} className="bg-primary/5 border-primary/20">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex gap-3">
-                      <div className={`p-2 rounded-full bg-muted ${getIconColor(notification.variant)}`}>
-                        <notification.icon className="h-4 w-4" />
-                      </div>
-                      <div className="space-y-1">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          {notification.title}
-                          <span className="w-2 h-2 bg-primary rounded-full"></span>
-                        </CardTitle>
-
-                        <CardDescription className="text-sm">
-                          {notification.message}
-                        </CardDescription>
-
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
-                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(n.createdAt).toLocaleString()}
+                      </p>
                     </div>
                   </div>
                 </CardHeader>
               </Card>
-            ))}
+            );
+          })}
         </TabsContent>
 
-        {/* Archived Placeholder */}
+        {/* UNREAD Notifications */}
+        <TabsContent value="unread" className="space-y-3 mt-6">
+          {notifications
+            .filter((n) => !n.isRead)
+            .map((n) => {
+              const Icon = iconMap[n.type] || Bell;
+
+              return (
+                <Card
+                  key={n._id}
+                  onClick={() => markAsRead(n._id)}
+                  className="cursor-pointer bg-primary/5 border-primary/20"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`p-2 rounded-full bg-muted ${getIconColor(n.type)}`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+
+                      <div className="space-y-1">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          {n.type.toUpperCase()}
+                          <span className="w-2 h-2 bg-primary rounded-full"></span>
+                        </CardTitle>
+
+                        <CardDescription>{n.message}</CardDescription>
+
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(n.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+        </TabsContent>
+
+        {/* Archived */}
         <TabsContent value="archived" className="mt-6">
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">

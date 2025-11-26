@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom"; // ✅ Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 const emergencyNumbers = {
   USA: "911",
@@ -25,15 +25,26 @@ const emergencyNumbers = {
 };
 
 const Emergency = () => {
-  const navigate = useNavigate(); // ✅ Initialize navigate
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState([]);
   const [newContact, setNewContact] = useState({ name: "", phone: "", relation: "" });
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // ✅ Get token from localStorage (or wherever you store it)
+  const token = localStorage.getItem("token");
+
+  // Configure axios instance with token
+  const axiosInstance = axios.create({
+    baseURL: "http://localhost:5000/api/traveler",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  // Fetch user-specific contacts
   const fetchContacts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/traveler/viewemergency");
-      console.log(res.data);
+      const res = await axiosInstance.get("/viewemergency");
       setContacts(res.data.data || []);
     } catch (error) {
       console.error(error);
@@ -55,8 +66,9 @@ const Emergency = () => {
       toast.error("Please fill all fields!");
       return;
     }
+
     try {
-      await axios.post("http://localhost:5000/api/traveler/emergency", newContact);
+      await axiosInstance.post("/emergency", newContact);
       toast.success("Emergency contact added successfully!");
       setNewContact({ name: "", phone: "", relation: "" });
       setDialogOpen(false);
@@ -69,14 +81,17 @@ const Emergency = () => {
 
   const handleDeleteContact = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/traveler/emergency/${id}`);
+      await axiosInstance.delete(`/emergency/${id}`);
       toast.success("Contact deleted successfully!");
-      setContacts(contacts.filter((contact) => contact._id !== id));
+      fetchContacts();
     } catch (error) {
       console.error(error);
       toast.error("Failed to delete contact");
     }
   };
+
+  // Disable Add Contact if user already added one
+  const isRegistrationClosed = contacts.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,7 +102,7 @@ const Emergency = () => {
           className="mb-4 flex items-center gap-2"
           onClick={() => navigate("/dash/dashboard")}
         >
-          <ArrowLeft className="w-4 h-4" /> 
+          <ArrowLeft className="w-4 h-4" />
         </Button>
 
         <h1 className="text-4xl font-bold mb-2 text-destructive">Emergency & Safety</h1>
@@ -103,49 +118,59 @@ const Emergency = () => {
                 <div>Emergency Contacts</div>
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="text-lg px-4 py-2 bg-blue-400 text-white rounded-lg flex items-center gap-2">
+                    <Button
+                      disabled={isRegistrationClosed}
+                      className="text-lg px-4 py-2 bg-blue-400 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <Plus className="w-4 h-4" /> Add Contact
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Add Emergency Contact</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex flex-col gap-3 mt-4">
-                      <label className="text-sm font-medium">Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={newContact.name}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-md border-gray-300 focus:outline-none focus:border-blue-500 hover:border-blue-500 transition"
-                      />
-                      <label className="text-sm font-medium">Phone Number</label>
-                      <input
-                        type="text"
-                        name="phone"
-                        value={newContact.phone}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-md border-gray-300 focus:outline-none focus:border-blue-500 hover:border-blue-500 transition"
-                      />
-                      <label className="text-sm font-medium">Relationship</label>
-                      <input
-                        type="text"
-                        name="relation"
-                        placeholder="family, friend, etc"
-                        value={newContact.relation}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border rounded-md border-gray-300 focus:outline-none focus:border-blue-500 hover:border-blue-500 transition"
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button onClick={handleAddContact}>Add</Button>
-                    </DialogFooter>
-                  </DialogContent>
+
+                  {!isRegistrationClosed && (
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Add Emergency Contact</DialogTitle>
+                      </DialogHeader>
+
+                      <div className="flex flex-col gap-3 mt-4">
+                        <label className="text-sm font-medium">Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={newContact.name}
+                          onChange={handleInputChange}
+                          className="w-full p-2 border rounded-md"
+                        />
+
+                        <label className="text-sm font-medium">Phone Number</label>
+                        <input
+                          type="text"
+                          name="phone"
+                          value={newContact.phone}
+                          onChange={handleInputChange}
+                          className="w-full p-2 border rounded-md"
+                        />
+
+                        <label className="text-sm font-medium">Relationship</label>
+                        <input
+                          type="text"
+                          name="relation"
+                          value={newContact.relation}
+                          onChange={handleInputChange}
+                          className="w-full p-2 border rounded-md"
+                        />
+                      </div>
+
+                      <DialogFooter>
+                        <Button onClick={handleAddContact}>Add</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  )}
                 </Dialog>
               </div>
             </CardTitle>
           </CardHeader>
+
           <CardContent>
             {contacts.length === 0 ? (
               <p className="text-muted-foreground">No emergency contacts added yet.</p>
@@ -163,6 +188,7 @@ const Emergency = () => {
                       <span className="text-sm text-primary">{contact.phone}</span>
                     </div>
                   </div>
+
                   <Button
                     size="sm"
                     variant="ghost"
@@ -182,8 +208,8 @@ const Emergency = () => {
             <CardTitle>Global Emergency Numbers</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(emergencyNumbers).map(([country, number], idx) => (
-              <div key={idx} className="p-4 rounded-lg border">
+            {Object.entries(emergencyNumbers).map(([country, number]) => (
+              <div key={country} className="p-4 rounded-lg border">
                 <p className="font-medium mb-1">{country}</p>
                 <span className="text-primary text-lg font-bold">{number}</span>
               </div>
@@ -196,4 +222,3 @@ const Emergency = () => {
 };
 
 export default Emergency;
-

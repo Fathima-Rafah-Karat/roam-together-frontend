@@ -259,10 +259,6 @@
 
 
 
-
-
-
-
 // src/pages/TravelDiary.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -288,7 +284,7 @@ export default function TravelDiary() {
   const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedEntry, setSelectedEntry] = useState(null); // For full view
+  const [selectedEntry, setSelectedEntry] = useState(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ id: null, title: "", date: "", yourstory: "" });
@@ -298,7 +294,19 @@ export default function TravelDiary() {
     const fetchEntries = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("http://localhost:5000/api/traveler/diary/diaries");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("No token found. Please login again.");
+          return;
+        }
+
+        const res = await axios.get(
+          "http://localhost:5000/api/traveler/diary/diaries",
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+
         const data = res.data.data ?? res.data.diaries ?? [];
         setEntries(data);
       } catch (err) {
@@ -328,11 +336,16 @@ export default function TravelDiary() {
     }
 
     try {
-      if (id) {
-        // Update existing entry
-        const res = await axios.put(`http://localhost:5000/api/traveler/diary/${id}`, { title, date, yourstory });
-        const updated = res.data.data ?? null;
+      const token = localStorage.getItem("token");
 
+      if (id) {
+        const res = await axios.put(
+          `http://localhost:5000/api/traveler/diary/${id}`,
+          { title, date, yourstory },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const updated = res.data.data;
         if (updated) {
           setEntries((prev) =>
             prev.map((e) => (e._id === updated._id || e.id === updated.id ? updated : e))
@@ -343,9 +356,13 @@ export default function TravelDiary() {
           toast.success("Diary entry updated successfully!");
         }
       } else {
-        // Create new entry
-        const res = await axios.post("http://localhost:5000/api/traveler/diary", { title, date, yourstory });
-        const created = res.data.data ?? null;
+        const res = await axios.post(
+          "http://localhost:5000/api/traveler/diary",
+          { title, date, yourstory },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const created = res.data.data;
         if (created) setEntries((prev) => [created, ...prev]);
         toast.success("Diary entry created successfully!");
       }
@@ -378,7 +395,13 @@ export default function TravelDiary() {
             onClick={async () => {
               toast.dismiss(t.id);
               try {
-                await axios.delete(`http://localhost:5000/api/traveler/diary/${id}`);
+                const token = localStorage.getItem("token");
+
+                await axios.delete(
+                  `http://localhost:5000/api/traveler/diary/${id}`,
+                  { headers: { Authorization: `Bearer ${token}` } }
+                );
+
                 setEntries((prev) => prev.filter((item) => item._id !== id && item.id !== id));
                 setSelectedEntry(null);
                 toast.success("Entry deleted successfully!", { position: "top-center" });
@@ -403,17 +426,14 @@ export default function TravelDiary() {
       <Toaster position="top-center" />
 
       <div className="container mx-auto px-4 pb-12 space-y-6">
-        {/* Back Button */}
         <Button
           variant="ghost"
           className="mb-4 flex items-center gap-2 w-fit"
           onClick={() => navigate("/dash/dashboard")}
         >
           <ArrowLeft className="w-4 h-4" />
-          
         </Button>
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-1">
@@ -422,7 +442,6 @@ export default function TravelDiary() {
             <p className="text-muted-foreground">Your personal travel journal</p>
           </div>
 
-          {/* New Entry Dialog */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -467,7 +486,6 @@ export default function TravelDiary() {
           </Dialog>
         </div>
 
-        {/* Single Selected Entry View */}
         {selectedEntry ? (
           <Card className="p-6 border border-gray-300">
             <Button variant="ghost" onClick={() => setSelectedEntry(null)} className="mb-4">
@@ -479,7 +497,6 @@ export default function TravelDiary() {
             <p className="whitespace-pre-line">{selectedEntry.yourstory}</p>
           </Card>
         ) : (
-          // Show all entries in preview mode
           <div className="grid gap-4">
             {loading ? (
               <p className="text-gray-500 text-center">Loading entries...</p>
