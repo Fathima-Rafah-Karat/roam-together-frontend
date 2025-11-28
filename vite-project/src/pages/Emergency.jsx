@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Phone, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, Phone } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -30,10 +30,8 @@ const Emergency = () => {
   const [newContact, setNewContact] = useState({ name: "", phone: "", relation: "" });
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // ✅ Get token from localStorage (or wherever you store it)
   const token = localStorage.getItem("token");
 
-  // Configure axios instance with token
   const axiosInstance = axios.create({
     baseURL: "http://localhost:5000/api/traveler",
     headers: {
@@ -41,7 +39,6 @@ const Emergency = () => {
     },
   });
 
-  // Fetch user-specific contacts
   const fetchContacts = async () => {
     try {
       const res = await axiosInstance.get("/viewemergency");
@@ -91,19 +88,12 @@ const Emergency = () => {
   };
 
   // Disable Add Contact if user already added one
-  const isRegistrationClosed = contacts.length > 0;
+  const isRegistrationClosed = contacts.length >= 3;
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 pt-5 pb-12 max-w-6xl">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          className="mb-4 flex items-center gap-2"
-          onClick={() => navigate("/dash/dashboard")}
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
+       
 
         <h1 className="text-4xl font-bold mb-2 text-destructive">Emergency & Safety</h1>
         <p className="text-muted-foreground pb-5">

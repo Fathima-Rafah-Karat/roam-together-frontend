@@ -258,8 +258,7 @@
 
 
 
-// this is card image
-// // src/pages/DiscoverTrips.jsx
+
 import { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -281,10 +280,9 @@ export default function DiscoverTrips() {
   const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState(""); // search input
+  const [search, setSearch] = useState("");
   const [filteredTrips, setFilteredTrips] = useState([]);
 
-  // Fetch all trips
   const fetchTrips = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/traveler/trips");
@@ -302,10 +300,9 @@ export default function DiscoverTrips() {
     fetchTrips();
   }, []);
 
-  // Handle search
   const handleSearch = async () => {
     if (!search) {
-      setFilteredTrips(trips); // Reset to all trips if search empty
+      setFilteredTrips(trips); 
       return;
     }
     try {
@@ -321,7 +318,6 @@ export default function DiscoverTrips() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-2">
           Discover Amazing Trips
@@ -331,7 +327,6 @@ export default function DiscoverTrips() {
         </p>
       </div>
 
-      {/* Search Bar */}
  <div className="relative mb-6">
   <span className="absolute inset-y-0 left-3 flex items-center text-gray-400">
     <Search className="h-4 w-4" />
@@ -352,21 +347,17 @@ export default function DiscoverTrips() {
   />
 </div>
 
-      {/* Loading State */}
       {loading && (
         <p className="text-center text-muted-foreground text-xl py-10">
           Loading trips...
         </p>
       )}
 
-      {/* No Trips */}
       {!loading && filteredTrips.length === 0 && (
         <Card className="p-12 text-center text-lg">
           No trips available
         </Card>
       )}
-
-      {/* Trips Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredTrips.map((trip) => {
           const imageUrl =
@@ -379,17 +370,14 @@ export default function DiscoverTrips() {
               key={trip._id}
               className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
             >
-              {/* Image */}
               <img
                 src={imageUrl}
                 alt={trip.title}
                 className="absolute inset-0 w-full h-full object-cover"
               />
 
-              {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/20 to-black/10" />
 
-              {/* Content */}
               <div className="relative z-10 h-full flex flex-col justify-end p-6 text-white">
                 <div className="flex gap-2 flex-wrap mb-2">
                   {trip.tags?.map((tag) => (

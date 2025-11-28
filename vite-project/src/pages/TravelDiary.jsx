@@ -426,13 +426,7 @@ export default function TravelDiary() {
       <Toaster position="top-center" />
 
       <div className="container mx-auto px-4 pb-12 space-y-6">
-        <Button
-          variant="ghost"
-          className="mb-4 flex items-center gap-2 w-fit"
-          onClick={() => navigate("/dash/dashboard")}
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
+       
 
         <div className="flex items-center justify-between mb-4">
           <div>

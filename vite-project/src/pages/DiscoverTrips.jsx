@@ -1,147 +1,163 @@
-// import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-// import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
-// import { MapPin, Calendar, Users } from "lucide-react";
+// import { useEffect, useState } from "react";
+// import axios from "axios";
 // import { useNavigate } from "react-router-dom";
 
-// const trips = [
-//   {
-//     id: 1,
-//     title: "Bali Adventure",
-//     location: "Bali, Indonesia",
-//     duration: "7 days",
-//     participants: "Max 12",
-//     price: "$1,299",
-//     image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
-//     description: "Explore temples, rice terraces, and pristine beaches in this magical island paradise.",
-//     tags: ["Adventure", "Culture", "Beach"]
-//   },
-//   {
-//     id: 2,
-//     title: "Swiss Alps Trek",
-//     location: "Swiss Alps, Switzerland",
-//     duration: "10 days",
-//     participants: "Max 8",
-//     price: "$2,499",
-//     image: "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&q=80",
-//     description: "Trek through stunning mountain landscapes with experienced guides.",
-//     tags: ["Adventure", "Hiking", "Nature"]
-//   },
-//   {
-//     id: 3,
-//     title: "Tokyo Culture Tour",
-//     location: "Tokyo, Japan",
-//     duration: "5 days",
-//     participants: "Max 15",
-//     price: "$1,799",
-//     image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80",
-//     description: "Immerse yourself in Japanese culture, from ancient temples to modern tech.",
-//     tags: ["Culture", "Food", "City"]
-//   },
-//   {
-//     id: 4,
-//     title: "Safari Experience",
-//     location: "Serengeti, Tanzania",
-//     duration: "8 days",
-//     participants: "Max 10",
-//     price: "$3,299",
-//     image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=800&q=80",
-//     description: "Witness the great migration and explore Africa's incredible wildlife.",
-//     tags: ["Wildlife", "Adventure", "Nature"]
-//   },
-//   {
-//     id: 5,
-//     title: "Iceland Northern Lights",
-//     location: "Reykjavik, Iceland",
-//     duration: "6 days",
-//     participants: "Max 12",
-//     price: "$2,199",
-//     image: "https://images.unsplash.com/photo-1483347756197-71ef80e95f73?w=800&q=80",
-//     description: "Chase the aurora borealis and explore volcanic landscapes and hot springs.",
-//     tags: ["Nature", "Adventure", "Photography"]
-//   },
-//   {
-//     id: 6,
-//     title: "Greek Islands Hopping",
-//     location: "Santorini & Mykonos, Greece",
-//     duration: "9 days",
-//     participants: "Max 14",
-//     price: "$1,899",
-//     image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800&q=80",
-//     description: "Discover white-washed villages, blue-domed churches, and crystal-clear waters.",
-//     tags: ["Beach", "Culture", "Relaxation"]
-//   }
-// ];
+// import { Card, CardTitle } from "@/components/ui/card";
+// import { Button } from "@/components/ui/button";
+// import { Calendar, MapPin, Users, ArrowLeft, Star } from "lucide-react";
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// import { Toaster, toast } from "react-hot-toast";
 
-// export default function DiscoverTrips() {
-//   const navigate = useNavigate();
+// export default function MyTrips() {
+//     const [upcomingTrips, setUpcomingTrips] = useState([]);
+//     const [pastTrips, setPastTrips] = useState([]);
+//     const [loading, setLoading] = useState(true);
 
-//   return (
-//     <div className="space-y-6">
-//       <div>
-//         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-2">
-//           Discover Amazing Trips
-//         </h1>
-//         <p className="text-muted-foreground text-lg">
-//           Explore curated travel experiences from around the world
-//         </p>
-//       </div>
+//     const [selectedTrip, setSelectedTrip] = useState(null);
+//     const [tripReviews, setTripReviews] = useState([]);
+//     const [showReviewForm, setShowReviewForm] = useState(false);
+//     const [reviewText, setReviewText] = useState("");
+//     const [rating, setRating] = useState(5);
 
-//       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-//         {trips.map((trip) => (
-//           <Card key={trip.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-//             <div className="h-48 overflow-hidden">
-//               <img 
-//                 src={trip.image} 
-//                 alt={trip.title}
-//                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-//               />
-//             </div>
+//     const navigate = useNavigate();
+//     const token = localStorage.getItem("token");
 
-//             <CardHeader>
-//               <div className="flex items-start justify-between gap-2 mb-2">
-//                 <CardTitle className="text-xl">{trip.title}</CardTitle>
-//                 <span className="text-lg font-bold text-accent whitespace-nowrap">{trip.price}</span>
-//               </div>
+//     const fetchMyTrips = async () => {
+//         try {
+//             const res = await axios.get("http://localhost:5000/api/traveler/mytrip/view", {
+//                 headers: { Authorization: `Bearer ${token}` },
+//             });
 
-//               <CardDescription className="flex items-center gap-1 text-foreground/70">
-//                 <MapPin className="h-4 w-4" />
-//                 {trip.location}
-//               </CardDescription>
-//             </CardHeader>
+//             console.log(res.data);
 
-//             <CardContent className="space-y-3">
-//               <p className="text-sm text-muted-foreground">{trip.description}</p>
+//             setUpcomingTrips(res.data.upcoming || []);
+//             setPastTrips(res.data.past || []);
+//         } catch (err) {
+//             console.error("Error fetching trips:", err);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
 
-//               <div className="flex gap-2 flex-wrap">
-//                 {trip.tags.map((tag) => (
-//                   <Badge key={tag} variant="secondary" className="text-xs">
-//                     {tag}
-//                   </Badge>
-//                 ))}
-//               </div>
+//     useEffect(() => {
+//         fetchMyTrips();
+//     }, []);
 
-//               <div className="flex gap-4 text-sm text-muted-foreground pt-2">
-//                 <span className="flex items-center gap-1">
-//                   <Calendar className="h-4 w-4" />
-//                   {trip.duration}
-//                 </span>
+//     const formatDate = (dateString) =>
+//         new Date(dateString).toLocaleDateString(undefined, {
+//             year: "numeric",
+//             month: "short",
+//             day: "numeric",
+//         });
 
-//                 <span className="flex items-center gap-1">
-//                   <Users className="h-4 w-4" />
-//                   {trip.participants}
-//                 </span>
-//               </div>
-//             </CardContent>
+//     if (loading) return <p>Loading trips...</p>;
 
-//             <CardFooter>
-//               <Button className="w-full" onClick={() => navigate(`/trip/${trip.id}`)}>
-//                 View Details
-//               </Button>
-//             </CardFooter>
-//           </Card>
-//         ))}
-//       </div>
-//     </div>
-//   );
+//     return (
+//         <div className="space-y-6">
+//             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
+//                 My Trips
+//             </h1>
+//             <p className="text-muted-foreground text-lg">Manage your booked travel experiences</p>
+
+//             <Tabs defaultValue="upcoming" className="w-full">
+//                 <TabsList className="grid w-full max-w-md grid-cols-2">
+//                     <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+//                     <TabsTrigger value="past">Past Trips</TabsTrigger>
+//                 </TabsList>
+
+
+//                 <TabsContent value="upcoming">
+//                     {upcomingTrips.length === 0 ? (
+//                         <p>No upcoming trips</p>
+//                     ) : (
+//                         upcomingTrips.map((trip) => (
+//                             <Card key={trip._id} className="overflow-hidden mb-4 shadow-lg">
+//                                 <div className="flex flex-col md:flex-row">
+//                                     <img
+//                                         src={
+//                                             trip.tripPhoto?.length
+//                                                 ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
+//                                                 : "/fallback.jpg"
+//                                         }
+//                                         alt={trip.title}
+//                                         className="w-full md:w-72 h-52 object-cover"
+//                                     />
+//                                     <div className="flex-1 p-6">
+//                                         <CardTitle className="text-2xl mb-2">{trip.title}</CardTitle>
+
+//                                         <p className="text-muted-foreground flex items-center gap-1">
+//                                             <MapPin className="h-4 w-4" /> {trip.location}
+//                                         </p>
+
+//                                         <div className="grid gap-3 mb-4">
+//                                             <div className="flex items-center gap-2 text-sm">
+//                                                 <Calendar className="h-4 w-4" />
+//                                                 {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+//                                             </div>
+
+//                                             <div className="flex items-center gap-2 text-sm">
+//                                                 <Users className="h-4 w-4" /> {trip.participants || 0} travelers
+//                                             </div>
+//                                         </div>
+
+//                                         <div className="flex gap-3">
+//                                             <Button onClick={() => navigate(`/dash/mytrip/${trip._id}`)}>View Details</Button>
+//                                         </div>
+//                                     </div>
+//                                 </div>
+//                             </Card>
+//                         ))
+//                     )}
+//                 </TabsContent>
+
+
+//                 <TabsContent value="past">
+//                     {pastTrips.length === 0 ? (
+//                         <p>No past trips</p>
+//                     ) : (
+//                         pastTrips.map((trip) => (
+//                             <Card key={trip._id} className="overflow-hidden mb-4 shadow-lg opacity-95">
+//                                 <div className="flex flex-col md:flex-row">
+//                                     <img
+//                                         src={
+//                                             trip.tripPhoto?.length
+//                                                 ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
+//                                                 : "/fallback.jpg"
+//                                         }
+//                                         alt={trip.title}
+//                                         className="w-full md:w-72 h-52 object-cover"
+//                                     />
+
+//                                     <div className="flex-1 p-6">
+//                                         <CardTitle className="text-2xl mb-2">{trip.title}</CardTitle>
+
+//                                         <p className="text-muted-foreground flex items-center gap-1">
+//                                             <MapPin className="h-4 w-4" /> {trip.location}
+//                                         </p>
+
+//                                         <div className="grid gap-3 mb-4">
+//                                             <div className="flex items-center gap-2 text-sm">
+//                                                 <Calendar className="h-4 w-4" />
+//                                                 {formatDate(trip.startDate)} - {formatDate(trip.endDate)}
+//                                             </div>
+
+//                                             <div className="flex items-center gap-2 text-sm">
+//                                                 <Users className="h-4 w-4" /> {trip.participants || 0} travelers
+//                                             </div>
+//                                         </div>
+
+//                                         <div className="flex gap-3">
+//                                             <Button className="bg-blue-600 text-white hover:bg-blue-700">
+//                                                 Review
+//                                             </Button>
+//                                         </div>
+//                                     </div>
+//                                 </div>
+//                             </Card>
+//                         ))
+//                     )}
+//                 </TabsContent>
+//             </Tabs>
+//         </div>
+//     );
 // }

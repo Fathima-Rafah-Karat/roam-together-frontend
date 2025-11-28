@@ -18,6 +18,7 @@ import EmergencyContacts from "./pages/Emergency";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/notification";
 import MyTrips from "./pages/mytrip";
+import MyTripDetails from "./pages/mytripdetails"; 
 import { Layout } from "./components/Layout";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="emergency" element={<EmergencyContacts />} />
             <Route path="notification" element={<Notifications />} />
             <Route path="mytrip" element={<MyTrips />} />
+             <Route path="mytrip/:id" element={<MyTripDetails />} />
             <Route path="trip/:id" element={<TripDetails />} />
 
           </Route>

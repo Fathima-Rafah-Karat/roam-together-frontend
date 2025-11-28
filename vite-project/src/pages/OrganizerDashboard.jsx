@@ -416,9 +416,10 @@
 
 // export default OrganizerDashboard;
 
+
+
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import Navbar from "@/components/Navbar";
 import { MapPin, Users, BarChart3, Plus, Calendar, Edit, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -439,7 +440,6 @@ export default function OrganizerDashboard() {
 
   // Placeholder trips data
   const [trips, setTrips] = useState([
-    // Example:
     // { id: 1, title: "Beach Adventure", location: "Goa", start_date: "2025-12-01", participant_count: 5, max_participants: 10, status: "Active" }
   ]);
 
@@ -456,7 +456,7 @@ export default function OrganizerDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+    
 
       <div className="container mx-auto px-4 pt-24 pb-12">
         <div className="mb-8">

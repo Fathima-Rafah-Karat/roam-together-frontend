@@ -262,7 +262,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, UserCircle, Briefcase, Shield } from "lucide-react";
 
-// -------------------- SCHEMAS --------------------
 const signupSchema = z
   .object({
     email: z.string().email(),
@@ -282,7 +281,6 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-// -------------------- API URL --------------------
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const Auth = () => {
@@ -298,18 +296,16 @@ const Auth = () => {
     { value: "Admin", label: "Admin", icon: Shield, description: "Manage the platform" },
   ];
 
-  // -------------------- REDIRECTION BASED ON ROLE --------------------
   const redirectBasedOnRole = (rawRole) => {
     if (!rawRole) return;
     const role = rawRole.trim().toLowerCase();
     console.log("Redirecting user with role:", rawRole);
 
     if (role === "admin") navigate("/admin/dashboard");
-    else if (role === "organizer") navigate("/organizer/dashboard");
-    else navigate("/dash/dashboard"); // default traveler
+    else if (role === "organizer") navigate("/organizer");
+    else navigate("/dash/dashboard"); 
   };
 
-  // -------------------- SIGNUP --------------------
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -355,7 +351,7 @@ const Auth = () => {
     }
   };
 
-  // -------------------- LOGIN --------------------
+  
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -387,7 +383,6 @@ const Auth = () => {
     }
   };
 
-  // -------------------- UI --------------------
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/10">
       <div className="w-full max-w-md">

@@ -331,13 +331,7 @@ export default function TripBlog() {
 
   return (
     <div className="space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 mb-4"
-      >
-        <ArrowLeft className="w-4 h-4" /> 
-      </Button>
+     
 
       {/* Header */}
       {!selectedBlog && (
@@ -421,7 +415,7 @@ export default function TripBlog() {
                 className="w-full max-h-[400px] object-cover rounded-lg"
               />
 
-              {doubleTap[selectedBlog._id] && (
+              {/* {doubleTap[selectedBlog._id] && (
                 <Heart
                   className="absolute inset-0 m-auto text-red-500"
                   size={120}
@@ -429,7 +423,7 @@ export default function TripBlog() {
                   stroke="none"
                   style={{ animation: "pop 0.7s ease-out" }}
                 />
-              )}
+              )} */}
             </div>
           )}
 
@@ -437,12 +431,12 @@ export default function TripBlog() {
           <p className="text-gray-700 mt-2 whitespace-pre-line">{selectedBlog.content}</p>
 
           <div className="mt-4">
-            <Button variant="ghost" onClick={() => handleLike(selectedBlog._id)}>
+            {/* <Button variant="ghost" onClick={() => handleLike(selectedBlog._id)}>
               <Heart
                 className={likedPosts[selectedBlog._id] ? "text-red-500" : ""}
                 fill={likedPosts[selectedBlog._id] ? "red" : "none"}
               />
-            </Button>
+            </Button> */}
           </div>
         </Card>
       ) : (
@@ -463,7 +457,7 @@ export default function TripBlog() {
                     className="relative"
                   >
                     <img src={photoSrc} className="w-full h-56 object-cover" />
-                    {doubleTap[id] && (
+                    {/* {doubleTap[id] && (
                       <Heart
                         className="absolute inset-0 m-auto text-red-500"
                         size={90}
@@ -471,7 +465,7 @@ export default function TripBlog() {
                         stroke="none"
                         style={{ animation: "pop 0.7s ease-out" }}
                       />
-                    )}
+                    )} */}
                   </div>
                 )}
 
@@ -483,7 +477,7 @@ export default function TripBlog() {
                   <CardDescription className="line-clamp-3">{post.content}</CardDescription>
                 </CardContent>
 
-                <CardFooter className="border-t pt-4">
+                {/* <CardFooter className="border-t pt-4">
                   <button
                     className="flex items-center gap-2 text-muted-foreground"
                     onClick={(e) => {
@@ -493,7 +487,7 @@ export default function TripBlog() {
                   >
                     <Heart className={isLiked ? "text-red-500" : ""} fill={isLiked ? "red" : "none"} />
                   </button>
-                </CardFooter>
+                </CardFooter> */}
               </Card>
             );
           })}
