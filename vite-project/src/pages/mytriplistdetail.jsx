@@ -1,361 +1,335 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {Card,CardContent, CardDescription,CardHeader, CardTitle} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-    MapPin,
-    Calendar,
-    Users,
-    Clock,
-    MessageCircle,
-    CheckCircle,
-    ArrowLeft,
-    ChevronDown,
-    ChevronUp,
-    Coffee,
-    Bed,
-    Car,
-    Activity,
-    Edit,
-    X as XIcon,
+  MapPin,
+  Calendar,
+  Users,
+  Clock,
+  MessageCircle,
+  CheckCircle,
+  ArrowLeft,
+  ChevronDown,
+  ChevronUp,
+  Coffee,
+  Bed,
+  Car,
+  Activity,
+  Edit,
+  X as XIcon,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-import { Dialog,DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import axios from "axios";
 import toast from "react-hot-toast";
 
 export default function TripListDetails() {
-    const { id } = useParams();
-    const navigate = useNavigate();
+  const { id } = useParams();
+  const navigate = useNavigate();
 
-    const [trip, setTrip] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [participantsOpen, setParticipantsOpen] = useState(false);
-    const [participants, setParticipants] = useState([]);
-    const [showFullDescription, setShowFullDescription] = useState(false);
-    const [openDays, setOpenDays] = useState({});
-    const [currentSlide, setCurrentSlide] = useState(0);
-    const sliderRef = useRef(null);
-    const [activeTab, setActiveTab] = useState("itinerary");
+  const [trip, setTrip] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [participants, setParticipants] = useState([]);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [openDays, setOpenDays] = useState({});
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const sliderRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("itinerary");
 
-    const [lightboxOpen, setLightboxOpen] = useState(false);
-    const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-    const [participantCount, setParticipantCount] = useState(0);
+  const [participantCount, setParticipantCount] = useState(0);
 
-    // Edit dialog state
-    const [editOpen, setEditOpen] = useState(false);
-    const [editData, setEditData] = useState({
-        title: "",
-        description: "",
-        price: "",
-        location: "",
-        participants: "",
-        startDate: "",
-        endDate: "",
-        inclusionspoint: "",
-        exclusionspoint: "",
-        tripPhoto: [],  // must be array
-        planDetails: [], // must be array
-    });
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState({
+    title: "",
+    description: "",
+    price: "",
+    location: "",
+    participants: "",
+    startDate: "",
+    endDate: "",
+    inclusionspoint: [],
+    exclusionspoint: [],
+    tripPhoto: [],
+    planDetails: [],
+    inclusions: {},
+  });
 
+  const [newInclusion, setNewInclusion] = useState("");
+  const [newExclusion, setNewExclusion] = useState("");
 
-    useEffect(() => {
-        const fetchCount = async () => {
-            try {
-                if (!trip?._id) return;
+  // Fetch trip
+  useEffect(() => {
+    const fetchTrip = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get(`http://localhost:5000/api/traveler/${id}`);
+        setTrip(res.data.data || null);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch trip details");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTrip();
+  }, [id]);
 
-                const res = await axios.get(
-                    `http://localhost:5000/api/traveler/participants/${trip._id}`
-                );
-
-                if (res.data.success) {
-                    setParticipantCount(res.data.count);
-                }
-            } catch (err) {
-                console.error("Error fetching participant count:", err);
-            }
-        };
-
-        fetchCount();
-    }, [trip]);
-
-    useEffect(() => {
-        const fetchTrip = async () => {
-            try {
-                setLoading(true);
-                const res = await axios.get(`http://localhost:5000/api/traveler/${id}`);
-                setTrip(res.data.data || null);
-            } catch (err) {
-                console.error(err);
-                toast.error("Failed to fetch trip details");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTrip();
-    }, [id]);
-
-    useEffect(() => {
-        if (trip?.tripPhoto?.length) {
-            const interval = setInterval(() => {
-                setCurrentSlide((prev) =>
-                    prev === trip.tripPhoto.length - 1 ? 0 : prev + 1
-                );
-            }, 2000);
-            return () => clearInterval(interval);
+  // Fetch participant count
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        if (!trip?._id) return;
+        const res = await axios.get(`http://localhost:5000/api/traveler/participants/${trip._id}`);
+        if (res.data.success) {
+          setParticipantCount(res.data.count);
         }
-    }, [trip]);
-
-    useEffect(() => {
-        if (sliderRef.current && trip?.tripPhoto?.length) {
-            sliderRef.current.scrollTo({
-                left: currentSlide * sliderRef.current.offsetWidth,
-                behavior: "smooth",
-            });
-        }
-    }, [currentSlide, trip]);
-
-    useEffect(() => {
-        if (!lightboxOpen) return;
-
-        const onKey = (e) => {
-            if (e.key === "Escape") setLightboxOpen(false);
-            if (e.key === "ArrowLeft") prevLightbox();
-            if (e.key === "ArrowRight") nextLightbox();
-        };
-
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, [lightboxOpen, trip, lightboxIndex]);
-
-    const handleChat = (phone) => {
-        if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+      } catch (err) {
+        console.error("Error fetching participant count:", err);
+      }
     };
+    fetchCount();
+  }, [trip]);
 
-    const toggleDay = (day) => {
-        setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
-    };
-
-    useEffect(() => {
-        if (participantsOpen && trip?._id) {
-            fetchParticipants();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [participantsOpen, trip?._id]);
-
-    const fetchParticipants = async () => {
-        try {
-            const res = await axios.get(
-                `http://localhost:5000/api/traveler/participants/${trip._id}`
-            );
-
-            if (res.data.success) {
-                setParticipants(res.data.data);
-            }
-        } catch (error) {
-            console.error("Error loading participants:", error);
-        }
-    };
-
-    const openLightboxAt = (index) => {
-        if (!trip?.tripPhoto?.length) return;
-        const safeIndex = Math.max(0, Math.min(index, trip.tripPhoto.length - 1));
-        setLightboxIndex(safeIndex);
-        setLightboxOpen(true);
-    };
-
-    const prevLightbox = () => {
-        if (!trip?.tripPhoto?.length) return;
-        setLightboxIndex((prev) =>
-            prev === 0 ? trip.tripPhoto.length - 1 : prev - 1
-        );
-    };
-
-    const nextLightbox = () => {
-        if (!trip?.tripPhoto?.length) return;
-        setLightboxIndex((prev) =>
-            prev === trip.tripPhoto.length - 1 ? 0 : prev + 1
-        );
-    };
-
-    if (loading)
-        return (
-            <p className="text-center py-10 text-muted-foreground">Loading trip...</p>
-        );
-
-    if (!trip)
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <h2 className="text-2xl font-bold mb-4">Trip not found</h2>
-                <Button onClick={() => navigate("/dash/dashboard")}>Go Back</Button>
-            </div>
-        );
-
-    // Build inclusionsObj for icons display
-    const inclusionsObj = {};
-    if (trip.inclusions) {
-        if (typeof trip.inclusions === "string") {
-            trip.inclusions.split(",").forEach((item) => {
-                inclusionsObj[item.trim()] = true;
-            });
-        } else {
-            Object.assign(inclusionsObj, trip.inclusions);
-        }
-
+  // Auto slide
+  useEffect(() => {
+    if (trip?.tripPhoto?.length) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev === trip.tripPhoto.length - 1 ? 0 : prev + 1));
+      }, 2000);
+      return () => clearInterval(interval);
     }
+  }, [trip]);
 
-    const handleDeleteTrip = async () => {
-        try {
-            const confirm = await new Promise((resolve) => {
-                toast(
-                    (t) => (
-                        <div className="flex flex-col gap-2">
-                            <span>Are you sure you want to cancel this trip?</span>
-                            <div className="flex justify-end gap-2 mt-2">
-                                <button
-                                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                                    onClick={() => {
-                                        toast.dismiss(t.id);
-                                        resolve(false);
-                                    }}
-                                >
-                                    No
-                                </button>
-                                <button
-                                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                    onClick={() => {
-                                        toast.dismiss(t.id);
-                                        resolve(true);
-                                    }}
-                                >
-                                    Yes
-                                </button>
-                            </div>
-                        </div>
-                    ),
-                    { duration: Infinity }
-                );
-            });
+  useEffect(() => {
+    if (sliderRef.current && trip?.tripPhoto?.length) {
+      sliderRef.current.scrollTo({
+        left: currentSlide * sliderRef.current.offsetWidth,
+        behavior: "smooth",
+      });
+    }
+  }, [currentSlide, trip]);
 
-            if (!confirm) return;
+  const toggleDay = (day) => {
+    setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
+  };
 
-            const token = localStorage.getItem("token");
-            if (!token) {
-                toast.error("Unauthorized — please login again");
-                return;
-            }
+  const fetchParticipants = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/traveler/participants/${trip._id}`);
+      if (res.data.success) {
+        setParticipants(res.data.data);
+      }
+    } catch (error) {
+      console.error("Error loading participants:", error);
+    }
+  };
 
-            const res = await axios.delete(
-                `http://localhost:5000/api/traveler/remove-trip/${trip._id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+  useEffect(() => {
+    if (participantsOpen && trip?._id) {
+      fetchParticipants();
+    }
+  }, [participantsOpen, trip?._id]);
 
-            if (res.data.success) {
-                toast.success(res.data.message);
-                navigate(-1);
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || "Failed to cancel trip");
-        }
-    };
+  const openLightboxAt = (index) => {
+    if (!trip?.tripPhoto?.length) return;
+    const safeIndex = Math.max(0, Math.min(index, trip.tripPhoto.length - 1));
+    setLightboxIndex(safeIndex);
+    setLightboxOpen(true);
+  };
 
-    // Prepare and open edit dialog
-    const openEditDialog = () => {
-        setEditData({
-            title: trip.title || "",
-            description: trip.description || "",
-            price: trip.price || "",
-            location: trip.location || "",
-            participants: trip.participants || "",
-            startDate: trip.startDate ? trip.startDate.substring(0, 10) : "",
-            endDate: trip.endDate ? trip.endDate.substring(0, 10) : "",
-            inclusionspoint: Array.isArray(trip.inclusionspoint)
-                ? trip.inclusionspoint.join(",")
-                : trip.inclusionspoint || "",
-            exclusionspoint: Array.isArray(trip.exclusionspoint)
-                ? trip.exclusionspoint.join(",")
-                : trip.exclusionspoint || "",
-            planDetails: Array.isArray(trip.planDetails) ? trip.planDetails.map(day => ({ ...day })) : [],
-            tripPhoto: trip.tripPhoto || [],
-            inclusions: trip.inclusions
-        });
-        setEditOpen(true);
-    };
+  const prevLightbox = () => {
+    if (!trip?.tripPhoto?.length) return;
+    setLightboxIndex((prev) => (prev === 0 ? trip.tripPhoto.length - 1 : prev - 1));
+  };
 
+  const nextLightbox = () => {
+    if (!trip?.tripPhoto?.length) return;
+    setLightboxIndex((prev) => (prev === trip.tripPhoto.length - 1 ? 0 : prev + 1));
+  };
 
-    // Clean a comma-separated string into array, removing stray punctuation/empty items
-    const cleanPointsToArray = (raw) => {
-        if (!raw && raw !== "") return [];
-        const joined = Array.isArray(raw) ? raw.join(",") : String(raw);
-        return joined
-            .replace(/[\[\]"]/g, "")
-            .split(",")
-            .map((x) => x.trim())
-            .map((x) => x.replace(/^[.,\s]+|[.,\s]+$/g, "")) // strip leading/trailing punctuation/spaces
-            .filter((x) => x && x !== "." && x !== ",");
-    };
+  const handleChat = (phone) => {
+    if (phone) window.open(`https://wa.me/${phone}`, "_blank");
+  };
 
-    // PUT handler
-   const handleUpdateTrip = async (e) => {
+  if (loading)
+    return <p className="text-center py-10 text-muted-foreground">Loading trip...</p>;
+
+  if (!trip)
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold mb-4">Trip not found</h2>
+        <Button onClick={() => navigate("/dash/dashboard")}>Go Back</Button>
+      </div>
+    );
+
+  // Build inclusionsObj for icons
+  const inclusionsObj = {};
+  if (trip.inclusions) {
+    if (typeof trip.inclusions === "string") {
+      trip.inclusions.split(",").forEach((item) => {
+        inclusionsObj[item.trim()] = true;
+      });
+    } else {
+      Object.assign(inclusionsObj, trip.inclusions);
+    }
+  }
+
+  const handleDeleteTrip = async () => {
+    try {
+      const confirm = await new Promise((resolve) => {
+        toast(
+          (t) => (
+            <div className="flex flex-col gap-2">
+              <span>Are you sure you want to cancel this trip?</span>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    resolve(false);
+                  }}
+                >
+                  No
+                </button>
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    resolve(true);
+                  }}
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: Infinity }
+        );
+      });
+
+      if (!confirm) return;
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Unauthorized — please login again");
+        return;
+      }
+
+      const res = await axios.delete(
+        `http://localhost:5000/api/traveler/remove-trip/${trip._id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (res.data.success) {
+        toast.success(res.data.message);
+        navigate(-1);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to cancel trip");
+    }
+  };
+
+  // Prepare and open edit dialog
+  const openEditDialog = () => {
+    setEditData({
+      title: trip.title || "",
+      description: trip.description || "",
+      price: trip.price || "",
+      location: trip.location || "",
+      participants: trip.participants || "",
+      startDate: trip.startDate ? trip.startDate.substring(0, 10) : "",
+      endDate: trip.endDate ? trip.endDate.substring(0, 10) : "",
+      inclusionspoint: Array.isArray(trip.inclusionspoint)
+        ? [...trip.inclusionspoint]
+        : trip.inclusionspoint
+          ? trip.inclusionspoint.split(",").map(p => p.trim())
+          : [],
+      exclusionspoint: Array.isArray(trip.exclusionspoint)
+        ? [...trip.exclusionspoint]
+        : trip.exclusionspoint
+          ? trip.exclusionspoint.split(",").map(p => p.trim())
+          : [],
+      planDetails: Array.isArray(trip.planDetails) ? trip.planDetails.map(day => ({ ...day })) : [],
+      tripPhoto: trip.tripPhoto || [],
+      inclusions: trip.inclusions || {},
+    });
+    setEditOpen(true);
+  };
+
+  const cleanPointsToArray = (raw) => {
+    if (!raw && raw !== "") return [];
+    const joined = Array.isArray(raw) ? raw.join(",") : String(raw);
+    return joined
+      .replace(/[\[\]"]/g, "")
+      .split(",")
+      .map((x) => x.trim())
+      .map((x) => x.replace(/^[.,\s]+|[.,\s]+$/g, ""))
+      .filter((x) => x && x !== "." && x !== ",");
+  };
+
+  // PUT handler
+  const handleUpdateTrip = async (e) => {
     e?.preventDefault?.();
     try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            toast.error("Unauthorized — please login again");
-            return;
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Unauthorized — please login again");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("title", editData.title);
+      formData.append("description", editData.description);
+      formData.append("price", editData.price);
+      formData.append("location", editData.location);
+      formData.append("participants", editData.participants);
+      formData.append("startDate", editData.startDate);
+      formData.append("endDate", editData.endDate);
+      formData.append("inclusionspoint", JSON.stringify(cleanPointsToArray(editData.inclusionspoint)));
+      formData.append("exclusionspoint", JSON.stringify(cleanPointsToArray(editData.exclusionspoint)));
+      formData.append("planDetails", JSON.stringify(editData.planDetails));
+
+      editData.tripPhoto.forEach((photo) => {
+        if (photo instanceof File) {
+          formData.append("tripPhoto", photo);
         }
+      });
 
-        const formData = new FormData();
-        formData.append("title", editData.title);
-        formData.append("description", editData.description);
-        formData.append("price", editData.price);
-        formData.append("location", editData.location);
-        formData.append("participants", editData.participants);
-        formData.append("startDate", editData.startDate);
-        formData.append("endDate", editData.endDate);
-        formData.append("inclusionspoint", JSON.stringify(cleanPointsToArray(editData.inclusionspoint)));
-        formData.append("exclusionspoint", JSON.stringify(cleanPointsToArray(editData.exclusionspoint)));
-        formData.append("planDetails", JSON.stringify(editData.planDetails));
-
-        // Append only new files
-        editData.tripPhoto.forEach((photo) => {
-            if (photo instanceof File) {
-                formData.append("tripPhoto", photo);
-            }
-        });
-
-        const res = await axios.put(
-            `http://localhost:5000/api/organizer/trip/${trip._id}`,
-            formData,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
-                },
-            }
-        );
-
-        if (res.data?.success) {
-            toast.success("Trip updated successfully");
-            setTrip(res.data.data || { ...trip, ...editData });
-            setEditOpen(false);
-        } else {
-            toast.error(res.data?.message || "Failed to update trip");
+      const res = await axios.put(
+        `http://localhost:5000/api/organizer/trip/${trip._id}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         }
+      );
+
+      if (res.data?.success) {
+        toast.success("Trip updated successfully");
+        setTrip(res.data.data || { ...trip, ...editData });
+        setEditOpen(false);
+      } else {
+        toast.error(res.data?.message || "Failed to update trip");
+      }
     } catch (err) {
-        console.error("Update error:", err);
-        toast.error(err.response?.data?.message || "Failed to update trip");
+      console.error("Update error:", err);
+      toast.error(err.response?.data?.message || "Failed to update trip");
     }
-};
-
+  };
 
     return (
         <div className="space-y-6">
@@ -822,31 +796,98 @@ export default function TripListDetails() {
             </div>
           </div>
 
-          {/* INCLUSION POINTS */}
-          <div>
-            <Label>Inclusions Points (comma separated)</Label>
-            <Textarea
-              rows={2}
-              placeholder="Inclusion points"
-              value={editData.inclusionspoint}
-              onChange={(e) =>
-                setEditData({ ...editData, inclusionspoint: e.target.value })
-              }
-            />
-          </div>
+         {/* INCLUSION POINTS */}
+<div className="space-y-2">
+  <Label className="font-semibold text-lg">Inclusion Points</Label>
+  <div className="flex gap-2">
+    <Input
+      value={newInclusion}
+      placeholder="Add inclusion point"
+      onChange={(e) => setNewInclusion(e.target.value)}
+    />
+    <Button
+      type="button"
+      onClick={() => {
+        if (newInclusion.trim()) {
+          setEditData({
+            ...editData,
+            inclusionspoint: [...editData.inclusionspoint, newInclusion.trim()],
+          });
+          setNewInclusion("");
+        }
+      }}
+    >
+      Add
+    </Button>
+  </div>
+  <div className="flex flex-wrap gap-2 mt-2">
+    {editData.inclusionspoint.map((point, index) => (
+      <div
+        key={index}
+        className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm"
+      >
+        <span>{point}</span>
+        <XIcon
+          size={14}
+          className="cursor-pointer text-red-500 hover:text-red-600"
+          onClick={() =>
+            setEditData({
+              ...editData,
+              inclusionspoint: editData.inclusionspoint.filter((_, i) => i !== index),
+            })
+          }
+        />
+      </div>
+    ))}
+  </div>
+</div>
 
-          {/* EXCLUSION POINTS */}
-          <div>
-            <Label>Exclusions Points (comma separated)</Label>
-            <Textarea
-              rows={2}
-              placeholder="Exclusion points"
-              value={editData.exclusionspoint}
-              onChange={(e) =>
-                setEditData({ ...editData, exclusionspoint: e.target.value })
-              }
-            />
-          </div>
+{/* EXCLUSION POINTS */}
+<div className="space-y-2">
+  <Label className="font-semibold text-lg">Exclusion Points</Label>
+  <div className="flex gap-2">
+    <Input
+      value={newExclusion}
+      placeholder="Add exclusion point"
+      onChange={(e) => setNewExclusion(e.target.value)}
+    />
+    <Button
+      type="button"
+      onClick={() => {
+        if (newExclusion.trim()) {
+          setEditData({
+            ...editData,
+            exclusionspoint: [...editData.exclusionspoint, newExclusion.trim()],
+          });
+          setNewExclusion("");
+        }
+      }}
+    >
+      Add
+    </Button>
+  </div>
+  <div className="flex flex-wrap gap-2 mt-2">
+    {editData.exclusionspoint.map((point, index) => (
+      <div
+        key={index}
+        className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm"
+      >
+        <span>{point}</span>
+        <XIcon
+          size={14}
+          className="cursor-pointer text-red-500 hover:text-red-600"
+          onClick={() =>
+            setEditData({
+              ...editData,
+              exclusionspoint: editData.exclusionspoint.filter((_, i) => i !== index),
+            })
+          }
+        />
+      </div>
+    ))}
+  </div>
+</div>
+
 
           {/* PHOTOS */}
           <div>

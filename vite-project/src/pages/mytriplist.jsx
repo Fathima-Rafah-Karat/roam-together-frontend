@@ -65,15 +65,16 @@ export default function TripsList() {
 
       const start = new Date(trip.startDate);
       const end = new Date(trip.endDate);
+
       let badgeText = "Upcoming";
-      let badgeColor = "bg-green-600";
+      let badgeColor = "#16a34a"; // green
 
       if (end < now) {
         badgeText = "Completed";
-        badgeColor = "bg-gray-600";
+        badgeColor = "#6b7280"; // gray
       } else if (start <= now && end >= now) {
         badgeText = "Ongoing";
-        badgeColor = "bg-blue-600";
+        badgeColor = "#2563eb"; // blue
       }
 
       return (
@@ -97,7 +98,12 @@ export default function TripsList() {
 
             {/* Status Badge */}
             <div className="absolute top-3 right-3 z-20">
-              <Badge className={`${badgeColor} text-white`}>{badgeText}</Badge>
+              <Badge
+                style={{ backgroundColor: badgeColor, color: "white" }}
+                className="px-3 py-1 rounded"
+              >
+                {badgeText}
+              </Badge>
             </div>
 
             <div className="relative z-10 h-full flex flex-col justify-end p-6 text-white">
