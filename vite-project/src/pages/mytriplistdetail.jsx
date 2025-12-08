@@ -227,12 +227,12 @@ export default function TripListDetails() {
       }
 
       const res = await axios.delete(
-        `http://localhost:5000/api/traveler/remove-trip/${trip._id}`,
+        `http://localhost:5000/api/organizer/deletetrip/${trip._id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (res.data.success) {
-        toast.success(res.data.message);
+        toast.success(res.data.message||"trip delete successfully");
         navigate(-1);
       }
     } catch (error) {
@@ -241,7 +241,6 @@ export default function TripListDetails() {
     }
   };
 
-  // Prepare and open edit dialog
   const openEditDialog = () => {
     setEditData({
       title: trip.title || "",
@@ -279,7 +278,6 @@ export default function TripListDetails() {
       .filter((x) => x && x !== "." && x !== ",");
   };
 
-  // PUT handler
   const handleUpdateTrip = async (e) => {
     e?.preventDefault?.();
     try {
