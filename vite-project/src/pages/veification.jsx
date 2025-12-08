@@ -1,3 +1,4 @@
+// Verification.jsx
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,7 +18,7 @@ export default function Verification() {
   const [formDisabled, setFormDisabled] = useState(false);
 
   const token = localStorage.getItem("token");
-  const organizerId = localStorage.getItem("organizerId");
+  const organizerId = localStorage.getItem("userId"); // unified key
   const navigate = useNavigate();
 
   // Fetch verification status
@@ -122,7 +123,7 @@ export default function Verification() {
 
       actions = (
         <Button
-          className="bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 mx-auto"
+          className="bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 mx-auto mt-2"
           onClick={() => {
             setFormDisabled(false);
             setShowModal(false);
@@ -138,7 +139,7 @@ export default function Verification() {
     }
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="fixed inset-0 flex items-center justify-center z-50">
         <div className="w-full max-w-md border rounded-xl p-6 shadow-xl bg-white text-center">
           <ShieldCheck className={`w-12 h-12 mx-auto mb-4 ${iconColor}`} />
           <h2 className="text-2xl font-semibold mb-2">{title}</h2>
@@ -150,7 +151,7 @@ export default function Verification() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center px-4">
+    <div className="min-h-screen flex justify-center items-center px-4 bg-gray-100">
       <Toaster position="top-center" />
       {showModal && renderModal()}
 
@@ -161,7 +162,7 @@ export default function Verification() {
             <h2 className="text-2xl font-semibold">Organizer Verification</h2>
           </div>
           <p className="mb-4 text-gray-500">
-            Please complete your verification to access all organizer features. This helps us maintain a safe and trusted community.
+            Please complete your verification to access all organizer features.
           </p>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -199,9 +200,10 @@ export default function Verification() {
                 disabled={formDisabled}
               />
             </div>
-               <p className="text-base text-muted-foreground">
-                            This information is encrypted and used only for verification purposes.
-                        </p>
+
+            <p className="text-base text-muted-foreground">
+              This information is encrypted and used only for verification purposes.
+            </p>
 
             <Button
               type="submit"

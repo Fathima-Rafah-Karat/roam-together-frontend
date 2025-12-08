@@ -249,6 +249,11 @@
 
 
 
+
+
+
+
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -258,8 +263,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 import { MapPin, UserCircle, Briefcase, Shield } from "lucide-react";
+import { Toaster, toast } from "react-hot-toast"; 
 
 const signupSchema = z
   .object({
@@ -280,12 +285,10 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
-const API_URL = import.meta.env.VITE_API_URL || "/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState("Traveler");
 
@@ -295,16 +298,53 @@ const Auth = () => {
     { value: "Admin", label: "Admin", icon: Shield, description: "Manage the platform" },
   ];
 
-  const redirectBasedOnRole = (rawRole) => {
-    if (!rawRole) return;
-    const role = rawRole.trim().toLowerCase();
-    console.log("Redirecting user with role:", rawRole);
+  // -----------------------------
+  // Redirect user based on role and verification status
+  // -----------------------------
+  const redirectUser = async (role, userId, token) => {
+    const cleanRole = role?.trim().toLowerCase();
 
-    if (role === "admin") navigate("/admin/dashboard");
-    else if (role === "organizer") navigate("/verification");
-    else navigate("/dash/dashboard"); 
+    if (cleanRole === "admin") {
+      navigate("/admin/dashboard");
+      return;
+    }
+
+    if (cleanRole === "organizer") {
+      try {
+        const res = await axios.get(`${API_URL}/verify/viewverify/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const status = res?.data?.data?.status || "pending";
+
+        if (status === "approved") {
+          navigate("/organizer/dashboard");
+          return;
+        }
+
+        if (status === "rejected") {
+          toast.error("Your verification was rejected. Please resubmit.");
+          navigate("/verification");
+          return;
+        }
+
+        // Pending or not submitted
+        navigate("/verification");
+
+      } catch (err) {
+        navigate("/verification");
+      }
+
+      return;
+    }
+
+    // Traveler
+    navigate("/dash/dashboard");
   };
 
+  // -----------------------------
+  // SIGNUP
+  // -----------------------------
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -331,26 +371,28 @@ const Auth = () => {
       });
 
       const { token, user } = response.data.data;
-      const userRole = user?.role || validated.role;
 
       localStorage.setItem("token", token);
-      localStorage.setItem("role", userRole);
+      localStorage.setItem("role", user.role);
+      localStorage.setItem("userId", user._id); // unified key
 
-      toast({ title: "Account Created", description: response.data.message });
-      redirectBasedOnRole(userRole);
+      toast.success(response.data.message || "Account Created!");
 
+      redirectUser(user.role, user._id, token);
     } catch (err) {
       if (err.response?.status === 409) {
-        toast({ title: "User already exists", description: "Please log in instead", variant: "destructive" });
+        toast.error("User already exists. Please log in."); 
       } else {
-        toast({ title: "Signup Failed", description: err.response?.data?.message || err.message, variant: "destructive" });
+        toast.error(err.response?.data?.message || err.message);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  
+  // -----------------------------
+  // LOGIN
+  // -----------------------------
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -363,27 +405,29 @@ const Auth = () => {
       });
 
       const response = await axios.post(`${API_URL}/auth/signin`, validated);
+
       const { token, user } = response.data.data;
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", user.role);
+      localStorage.setItem("userId", user._id); // unified key
 
-      toast({ title: "Welcome Back!", description: response.data.message });
-      redirectBasedOnRole(user.role);
+      toast.success(response.data.message || "Login Successful!"); 
 
+      await redirectUser(user.role, user._id, token);
     } catch (err) {
-      toast({
-        title: "Login Failed",
-        description: err.response?.data?.message || err.message,
-        variant: "destructive",
-      });
+      toast.error(err.response?.data?.message || err.message); 
     } finally {
       setLoading(false);
     }
   };
 
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      <Toaster position="top-center" /> 
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="bg-primary p-2 rounded-lg">
@@ -394,7 +438,7 @@ const Auth = () => {
           </span>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs defaultValue="login">
           <TabsList className="grid grid-cols-2">
             <TabsTrigger value="login">Log In</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -454,6 +498,8 @@ const Auth = () => {
                     <Label>Confirm Password</Label>
                     <Input name="confirm-password" type="password" required />
                   </div>
+
+                  {/* Role Select */}
                   <div>
                     <Label>Select Role</Label>
                     <div className="grid gap-2">
@@ -470,7 +516,11 @@ const Auth = () => {
                                 : "border-border hover:border-primary/50"
                             }`}
                           >
-                            <Icon className={`h-5 w-5 ${selectedRole === role.value ? "text-primary" : "text-muted-foreground"}`} />
+                            <Icon
+                              className={`h-5 w-5 ${
+                                selectedRole === role.value ? "text-primary" : "text-muted-foreground"
+                              }`}
+                            />
                             <div>
                               <div className="font-medium">{role.label}</div>
                               <div className="text-sm text-muted-foreground">{role.description}</div>
@@ -480,6 +530,7 @@ const Auth = () => {
                       })}
                     </div>
                   </div>
+
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Creating..." : "Sign Up"}
                   </Button>

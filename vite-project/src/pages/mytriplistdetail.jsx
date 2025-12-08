@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import {Card,CardContent, CardDescription,CardHeader, CardTitle} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -24,15 +18,14 @@ import {
     Bed,
     Car,
     Activity,
+    Edit,
     X as XIcon,
 } from "lucide-react";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+
+import { Dialog,DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -215,7 +208,7 @@ export default function TripListDetails() {
         } else {
             Object.assign(inclusionsObj, trip.inclusions);
         }
-        
+
     }
 
     const handleDeleteTrip = async () => {
@@ -290,9 +283,9 @@ export default function TripListDetails() {
             exclusionspoint: Array.isArray(trip.exclusionspoint)
                 ? trip.exclusionspoint.join(",")
                 : trip.exclusionspoint || "",
-            planDetails: trip.planDetails || [],
-            tripPhoto: trip.tripPhoto || [], 
-            inclusions:trip.inclusions
+            planDetails: Array.isArray(trip.planDetails) ? trip.planDetails.map(day => ({ ...day })) : [],
+            tripPhoto: trip.tripPhoto || [],
+            inclusions: trip.inclusions
         });
         setEditOpen(true);
     };
@@ -311,51 +304,58 @@ export default function TripListDetails() {
     };
 
     // PUT handler
-    const handleUpdateTrip = async (e) => {
-        e?.preventDefault?.();
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                toast.error("Unauthorized — please login again");
-                return;
-            }
-
-            const payload = {
-                title: editData.title,
-                description: editData.description,
-                price: editData.price,
-                location: editData.location,
-                participants: editData.participants,
-                startDate: editData.startDate,
-                endDate: editData.endDate,
-                inclusionspoint: cleanPointsToArray(editData.inclusionspoint),
-                exclusionspoint: cleanPointsToArray(editData.exclusionspoint),
-                planDetails: editData.planDetails,
-                tripPhoto: editData.tripPhoto
-
-                // if you want to update planDetails or other fields, include them here
-            };
-
-            const res = await axios.put(
-                `http://localhost:5000/api/organizer/trip/${trip._id}`,
-                payload,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            if (res.data?.success) {
-                toast.success("Trip updated successfully");
-                // If API returns updated trip, use it; otherwise merge locally
-                const updatedTrip = res.data.data || { ...trip, ...payload };
-                setTrip(updatedTrip);
-                setEditOpen(false);
-            } else {
-                toast.error(res.data?.message || "Failed to update trip");
-            }
-        } catch (err) {
-            console.error("Update error:", err);
-            toast.error(err.response?.data?.message || "Failed to update trip");
+   const handleUpdateTrip = async (e) => {
+    e?.preventDefault?.();
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast.error("Unauthorized — please login again");
+            return;
         }
-    };
+
+        const formData = new FormData();
+        formData.append("title", editData.title);
+        formData.append("description", editData.description);
+        formData.append("price", editData.price);
+        formData.append("location", editData.location);
+        formData.append("participants", editData.participants);
+        formData.append("startDate", editData.startDate);
+        formData.append("endDate", editData.endDate);
+        formData.append("inclusionspoint", JSON.stringify(cleanPointsToArray(editData.inclusionspoint)));
+        formData.append("exclusionspoint", JSON.stringify(cleanPointsToArray(editData.exclusionspoint)));
+        formData.append("planDetails", JSON.stringify(editData.planDetails));
+
+        // Append only new files
+        editData.tripPhoto.forEach((photo) => {
+            if (photo instanceof File) {
+                formData.append("tripPhoto", photo);
+            }
+        });
+
+        const res = await axios.put(
+            `http://localhost:5000/api/organizer/trip/${trip._id}`,
+            formData,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                },
+            }
+        );
+
+        if (res.data?.success) {
+            toast.success("Trip updated successfully");
+            setTrip(res.data.data || { ...trip, ...editData });
+            setEditOpen(false);
+        } else {
+            toast.error(res.data?.message || "Failed to update trip");
+        }
+    } catch (err) {
+        console.error("Update error:", err);
+        toast.error(err.response?.data?.message || "Failed to update trip");
+    }
+};
+
 
     return (
         <div className="space-y-6">
@@ -722,152 +722,257 @@ export default function TripListDetails() {
 
                                     <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-auto">
                                         <DialogHeader>
-                                            <DialogTitle>Edit Trip</DialogTitle>
+                                            <DialogTitle className="!text-xl !font-bold flex justify-start gap-3"><Edit className="text-red-500"/>Edit Trip Details</DialogTitle>
+                                            <p> Update the information for this trip.</p>
                                         </DialogHeader>
 
-                                        <form onSubmit={handleUpdateTrip} className="space-y-4">
-                                            {/* Basic Info */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                <input
-                                                    className="border p-2 rounded"
-                                                    placeholder="Title"
-                                                    value={editData.title}
-                                                    onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-                                                />
-                                                <input
-                                                    className="border p-2 rounded"
-                                                    placeholder="Price"
-                                                    value={editData.price}
-                                                    onChange={(e) => setEditData({ ...editData, price: e.target.value })}
-                                                />
-                                                <input
-                                                    className="border p-2 rounded"
-                                                    placeholder="Location"
-                                                    value={editData.location}
-                                                    onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-                                                />
-                                                <input
-                                                    className="border p-2 rounded"
-                                                    placeholder="Participants"
-                                                    value={editData.participants}
-                                                    onChange={(e) => setEditData({ ...editData, participants: e.target.value })}
-                                                />
-                                                <label className="text-sm text-muted-foreground">Start Date</label>
-                                                <label className="text-sm text-muted-foreground">End Date</label>
-                                                <input
-                                                    type="date"
-                                                    className="border p-2 rounded"
-                                                    value={editData.startDate}
-                                                    onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
-                                                />
-                                                <input
-                                                    type="date"
-                                                    className="border p-2 rounded"
-                                                    value={editData.endDate}
-                                                    onChange={(e) => setEditData({ ...editData, endDate: e.target.value })}
-                                                />
-                                            </div>
+                                      <form onSubmit={handleUpdateTrip} className="space-y-6">
 
-                                            {/* Description */}
-                                            <div className="space-y-2">
-                                                <textarea
-                                                    className="border p-2 rounded w-full"
-                                                    rows={4}
-                                                    placeholder="Description"
-                                                    value={editData.description}
-                                                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                                                />
-                                            </div>
+          {/* BASIC INFO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                            {/* Inclusions Checkboxes */}
-                                            <div className="flex gap-4 flex-wrap items-center">
-                                                {["meals", "stay", "transport", "activities"].map((inc) => (
-                                                    <label key={inc} className="flex items-center gap-1">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={!!editData.inclusions?.[inc]}
-                                                            onChange={(e) =>
-                                                                setEditData({
-                                                                    ...editData,
-                                                                    inclusions: { ...editData.inclusions, [inc]: e.target.checked },
-                                                                })
-                                                            }
-                                                        />
-                                                        <span className="capitalize">{inc}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
+            <div>
+              <Label>Title</Label>
+              <Input
+                placeholder="Trip Title"
+                value={editData.title}
+                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+              />
+            </div>
 
-                                            {/* Trip Photos */}
-                                            <div className="flex gap-2 flex-wrap mt-2">
-                                                {editData.tripPhoto.map((photo, idx) => {
-                                                    const url = typeof photo === "string" ? `http://localhost:5000/${photo}` : URL.createObjectURL(photo);
-                                                    return (
-                                                        <div key={idx} className="relative">
-                                                            <img src={url} alt={`photo-${idx}`} className="w-24 h-16 object-cover rounded" />
-                                                            <XIcon
-                                                                className="absolute top-0 right-0 cursor-pointer text-red-500"
-                                                                onClick={() =>
-                                                                    setEditData({ ...editData, tripPhoto: editData.tripPhoto.filter((_, i) => i !== idx) })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    );
-                                                })}
-                                                <input
-                                                    type="file"
-                                                    multiple
-                                                    onChange={(e) =>
-                                                        setEditData({ ...editData, tripPhoto: [...editData.tripPhoto, ...Array.from(e.target.files)] })
-                                                    }
-                                                    className="border p-2 rounded"
-                                                />
-                                            </div>
+            <div>
+              <Label>Price</Label>
+              <Input
+                placeholder="Price"
+                value={editData.price}
+                onChange={(e) => setEditData({ ...editData, price: e.target.value })}
+              />
+            </div>
 
-                                            {/* Plan Details */}
-                                            <div>
-                                                {editData.planDetails.map((day, idx) => (
-                                                    <div key={idx} className="flex gap-2 mb-2">
-                                                        <input
-                                                            className="border p-2 rounded w-1/4"
-                                                            placeholder="Day"
-                                                            value={day.day}
-                                                            onChange={(e) => {
-                                                                const updated = [...editData.planDetails];
-                                                                updated[idx].day = e.target.value;
-                                                                setEditData({ ...editData, planDetails: updated });
-                                                            }}
-                                                        />
-                                                        <input
-                                                            className="border p-2 rounded w-3/4"
-                                                            placeholder="Title / Plan"
-                                                            value={day.title}
-                                                            onChange={(e) => {
-                                                                const updated = [...editData.planDetails];
-                                                                updated[idx].title = e.target.value;
-                                                                setEditData({ ...editData, planDetails: updated });
-                                                            }}
-                                                        />
-                                                    </div>
-                                                ))}
-                                                <Button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setEditData({ ...editData, planDetails: [...editData.planDetails, { day: "", title: "" }] })
-                                                    }
-                                                >
-                                                    Add Day
-                                                </Button>
-                                            </div>
+            <div>
+              <Label>Location</Label>
+              <Input
+                placeholder="Location"
+                value={editData.location}
+                onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+              />
+            </div>
 
-                                            {/* Form Actions */}
-                                            <div className="flex gap-2 justify-end mt-4">
-                                                <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
-                                                    Cancel
-                                                </Button>
-                                                <Button type="submit">Save Changes</Button>
-                                            </div>
-                                        </form>
+            <div>
+              <Label>Participants</Label>
+              <Input
+                placeholder="Participants"
+                value={editData.participants}
+                onChange={(e) => setEditData({ ...editData, participants: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label>Start Date</Label>
+              <Input
+                type="date"
+                value={editData.startDate}
+                onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <Label>End Date</Label>
+              <Input
+                type="date"
+                value={editData.endDate}
+                onChange={(e) => setEditData({ ...editData, endDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* DESCRIPTION */}
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              rows={4}
+              placeholder="Description"
+              value={editData.description}
+              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+            />
+          </div>
+
+          {/* CHECKBOX INCLUSIONS */}
+          <div>
+            <Label className="font-semibold text-lg">Inclusions</Label>
+            <div className="flex gap-4 flex-wrap mt-2">
+              {["meals", "stay", "transport", "activities"].map((inc) => (
+                <label key={inc} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={!!editData.inclusions?.[inc]}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        inclusions: {
+                          ...editData.inclusions,
+                          [inc]: e.target.checked,
+                        },
+                      })
+                    }
+                  />
+                  <span className="capitalize">{inc}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* INCLUSION POINTS */}
+          <div>
+            <Label>Inclusions Points (comma separated)</Label>
+            <Textarea
+              rows={2}
+              placeholder="Inclusion points"
+              value={editData.inclusionspoint}
+              onChange={(e) =>
+                setEditData({ ...editData, inclusionspoint: e.target.value })
+              }
+            />
+          </div>
+
+          {/* EXCLUSION POINTS */}
+          <div>
+            <Label>Exclusions Points (comma separated)</Label>
+            <Textarea
+              rows={2}
+              placeholder="Exclusion points"
+              value={editData.exclusionspoint}
+              onChange={(e) =>
+                setEditData({ ...editData, exclusionspoint: e.target.value })
+              }
+            />
+          </div>
+
+          {/* PHOTOS */}
+          <div>
+            <Label className="font-semibold text-lg">Trip Photos</Label>
+            <div className="flex gap-3 flex-wrap mt-2">
+              {editData.tripPhoto.map((photo, idx) => {
+                const url =
+                  typeof photo === "string"
+                    ? `http://localhost:5000/${photo}`
+                    : URL.createObjectURL(photo);
+
+                return (
+                  <div key={idx} className="relative">
+                    <img
+                      src={url}
+                      alt=""
+                      className="w-24 h-16 object-cover rounded"
+                    />
+                    <XIcon
+                      className="absolute top-1 right-1 text-red-500 cursor-pointer"
+                      size={16}
+                      onClick={() =>
+                        setEditData({
+                          ...editData,
+                          tripPhoto: editData.tripPhoto.filter((_, i) => i !== idx),
+                        })
+                      }
+                    />
+                  </div>
+                );
+              })}
+              <Input
+                type="file"
+                multiple
+                onChange={(e) =>
+                  setEditData({
+                    ...editData,
+                    tripPhoto: [...editData.tripPhoto, ...Array.from(e.target.files)],
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          {/* PLAN DETAILS */}
+          <div>
+            <Label className="text-lg font-semibold">Plan Details</Label>
+            <div className="space-y-3 mt-2">
+              {editData.planDetails.map((dayItem, idx) => (
+                <div key={idx} className="flex gap-3 items-start">
+
+                  <Input
+                    type="number"
+                    placeholder="Day"
+                    className="w-20"
+                    value={dayItem.day}
+                    onChange={(e) => {
+                      const updated = [...editData.planDetails];
+                      updated[idx].day = Number(e.target.value);
+                      setEditData({ ...editData, planDetails: updated });
+                    }}
+                  />
+
+                  <Input
+                    placeholder="Title"
+                    className="w-1/4"
+                    value={dayItem.title}
+                    onChange={(e) => {
+                      const updated = [...editData.planDetails];
+                      updated[idx].title = e.target.value;
+                      setEditData({ ...editData, planDetails: updated });
+                    }}
+                  />
+
+                  <Textarea
+                    placeholder="Description"
+                    className="w-1/2"
+                    rows={2}
+                    value={dayItem.plan}
+                    onChange={(e) => {
+                      const updated = [...editData.planDetails];
+                      updated[idx].plan = e.target.value;
+                      setEditData({ ...editData, planDetails: updated });
+                    }}
+                  />
+
+                  <Button
+                    variant="destructive"
+                    type="button"
+                    onClick={() => {
+                      const updated = [...editData.planDetails];
+                      updated.splice(idx, 1);
+                      setEditData({ ...editData, planDetails: updated });
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                onClick={() =>
+                  setEditData({
+                    ...editData,
+                    planDetails: [
+                      ...editData.planDetails,
+                      { day: "", title: "", plan: "" },
+                    ],
+                  })
+                }
+              >
+                Add Day
+              </Button>
+            </div>
+          </div>
+
+          {/* ACTION BUTTONS */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" type="button" onClick={() => setEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">Save Changes</Button>
+          </div>
+        </form>
+
                                     </DialogContent>
                                 </div>
                             </Dialog>
