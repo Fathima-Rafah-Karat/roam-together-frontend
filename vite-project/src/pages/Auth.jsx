@@ -342,9 +342,6 @@ const Auth = () => {
     navigate("/dash/dashboard");
   };
 
-  // -----------------------------
-  // SIGNUP
-  // -----------------------------
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -390,9 +387,7 @@ const Auth = () => {
     }
   };
 
-  // -----------------------------
-  // LOGIN
-  // -----------------------------
+  
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -422,9 +417,7 @@ const Auth = () => {
     }
   };
 
-  // -----------------------------
-  // UI
-  // -----------------------------
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/10">
       <Toaster position="top-center" /> 
