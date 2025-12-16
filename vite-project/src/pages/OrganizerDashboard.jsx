@@ -500,126 +500,223 @@
 
 
 
-
-
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Users, Calendar, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const stats = [
-    { title: "Total Trips", value: "12", icon: MapPin, change: "+2 this month", trend: "up" },
-    { title: "Active Participants", value: "148", icon: Users, change: "+23 this week", trend: "up" },
-    { title: "Upcoming Events", value: "5", icon: Calendar, change: "Next: Tomorrow", trend: "neutral" },
-    { title: "Completion Rate", value: "94%", icon: TrendingUp, change: "+3% from last month", trend: "up" },
-  ];
+  const [stats, setStats] = useState([]);
+  const [recentTrips, setRecentTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const recentTrips = [
-    { id: 1, name: "Summer Beach Retreat", date: "Jul 15-20, 2025", participants: 24, status: "upcoming" },
-    { id: 2, name: "Mountain Hiking Adventure", date: "Aug 5-10, 2025", participants: 18, status: "planning" },
-    { id: 3, name: "City Food Tour", date: "Jun 20-22, 2025", participants: 32, status: "completed" },
-  ];
+  /* =========================
+     STATUS BADGE LOGIC
+  ========================== */
+  const getTripStatus = (trip) => {
+    const now = new Date();
+    const start = new Date(trip.startDate);
+    const end = new Date(trip.endDate);
+
+    if (end < now) {
+      return { text: "Completed", color: "#6b7280" }; // gray
+    }
+
+    if (start <= now && end >= now) {
+      return { text: "Ongoing", color: "#2563eb" }; // blue
+    }
+
+    return { text: "Upcoming", color: "#16a34a" }; // green
+  };
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          setError("Unauthorized. Please login.");
+          setLoading(false);
+          return;
+        }
+
+        const headers = {
+          Authorization: `Bearer ${token}`,
+        };
+
+        /* =====================
+           FETCH STATS
+        ====================== */
+        const statsRes = await axios.get(
+          "http://localhost:5000/api/organizer/count",
+          { headers }
+        );
+
+        // supports both {data:{}} and direct {}
+        const statsData = statsRes.data?.data || statsRes.data;
+
+        setStats([
+          {
+            title: "Total Trips",
+            value: statsData.totalTrips || 0,
+            icon: MapPin,
+            change: "Updated",
+          },
+          {
+            title: "Active Participants",
+            value: statsData.activeParticipants || 0,
+            icon: Users,
+            change: "Live",
+          },
+          {
+            title: "Upcoming Events",
+            value: statsData.upcomingEvents || 0,
+            icon: Calendar,
+            change: "Scheduled",
+          },
+          {
+            title: "Completion Rate",
+            value: `${statsData.completionRate || 0}%`,
+            icon: TrendingUp,
+            change: "Overall",
+          },
+        ]);
+
+        /* =====================
+           FETCH RECENT TRIPS
+        ====================== */
+        const tripsRes = await axios.get(
+          "http://localhost:5000/api/organizer/viewtrip",
+          { headers }
+        );
+
+        // ✅ FIX: always extract array safely
+        const tripsArray = Array.isArray(tripsRes.data)
+          ? tripsRes.data
+          : tripsRes.data?.data || [];
+
+        // latest 5 trips
+        setRecentTrips(tripsArray.slice(0, 5));
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Dashboard error:", err);
+        setError("Failed to load dashboard data");
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return <div className="text-center mt-10">Loading dashboard...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center mt-10 text-red-500">{error}</div>;
+  }
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-display font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">
-              Welcome back! Here's your trip overview.
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-bold text-blue-500">Dashboard</h1>
+        <p className="text-muted-foreground mt-1">
+          Welcome back! Here's your trip overview.
+        </p>
+      </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm text-muted-foreground">
+                  {stat.title}
+                </CardTitle>
+                <stat.icon className="w-4 h-4 text-accent" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stat.change}
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
 
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="shadow-soft hover:shadow-glow transition-smooth">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {stat.title}
-                  </CardTitle>
-                  <stat.icon className="w-4 h-4 text-accent" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-display font-bold text-foreground">
-                    {stat.value}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Recent Trips */}
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle className="text-xl font-display">Recent Trips</CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Recent Trips */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Recent Trips</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentTrips.length === 0 ? (
+            <p className="text-muted-foreground">No trips found</p>
+          ) : (
             <div className="space-y-4">
-              {recentTrips.map((trip) => (
-                <motion.div
-                  key={trip.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-smooth cursor-pointer"
-                  onClick={() => navigate(`/trips/${trip.id}`)}
-                >
-                  <div className="flex-1">
-                    <h3 className="font-display font-semibold text-foreground">
-                      {trip.name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {trip.date}
-                    </p>
-                  </div>
+              {recentTrips.map((trip) => {
+                const status = getTripStatus(trip);
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-foreground">
-                        {trip.participants} participants
+                return (
+                  <motion.div
+                    key={trip._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer"
+                    onClick={() => navigate(`/trips/${trip._id}`)}
+                  >
+                    <div>
+                      <h3 className="font-semibold">{trip.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(trip.startDate).toDateString()} –{" "}
+                        {new Date(trip.endDate).toDateString()}
                       </p>
                     </div>
 
-                    <Badge
-                      variant={trip.status === "completed" ? "secondary" : "default"}
-                      className={
-                        trip.status === "upcoming"
-                          ? "bg-accent text-accent-foreground"
-                          : ""
-                      }
-                    >
-                      {trip.status}
-                    </Badge>
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm">
+                        {trip.participants || 0} participants
+                      </p>
+
+                      {/* ✅ SAME BADGE AS TRIP LIST */}
+                      <Badge
+                        style={{
+                          backgroundColor: status.color,
+                          color: "white",
+                        }}
+                        className="px-3 py-1 rounded"
+                      >
+                        {status.text}
+                      </Badge>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+
+
 
 
 

@@ -17,7 +17,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+    DialogTrigger
+} from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -43,6 +46,25 @@ export default function TripListDetails() {
     const [openParticipant, setOpenParticipant] = useState(null);
     const [emergencyContacts, setEmergencyContacts] = useState({});
 
+    const [reviewOpen, setReviewOpen] = useState(false);
+    const [tripReview, setTripReview] = useState(null);
+
+    const [notifyOpen, setNotifyOpen] = useState(false);
+    const [notifyMessage, setNotifyMessage] = useState("");
+    const [notifyType, setNotifyType] = useState("info");
+    const [sending, setSending] = useState(false);
+    const [participant, setParticipant] = useState([]); // all participants
+    const [selectedTravelers, setSelectedTravelers] = useState([]); // selected for notification
+useEffect(() => {
+  if (trip && Array.isArray(trip.participants)) {
+    setParticipants(trip.participants); // store all participants
+    setSelectedTravelers(trip.participants.map(p => p._id)); // select all by default
+  } else {
+    setParticipants([]);
+    setSelectedTravelers([]);
+  }
+}, [trip]);
+
     // Edit dialog state
     const [editOpen, setEditOpen] = useState(false);
     const [editData, setEditData] = useState({
@@ -62,6 +84,22 @@ export default function TripListDetails() {
 
     const [newInclusion, setNewInclusion] = useState("");
     const [newExclusion, setNewExclusion] = useState("");
+
+    // ✅ Trip status calculation
+    const getTripStatus = () => {
+        if (!trip?.startDate || !trip?.endDate) return "upcoming";
+
+        const now = new Date();
+        const start = new Date(trip.startDate);
+        const end = new Date(trip.endDate);
+
+        if (now < start) return "upcoming";
+        if (now > end) return "completed";
+        return "ongoing";
+    };
+
+    const tripStatus = getTripStatus();
+
 
     // Fetch trip
     useEffect(() => {
@@ -103,6 +141,81 @@ export default function TripListDetails() {
             console.error("Emergency contact fetch error", err);
         }
     };
+
+
+
+    const handleGetReview = async () => {
+        try {
+            const res = await axios.get(
+                "http://localhost:5000/api/traveler/review&rating/rateandreview",
+                { withCredentials: true }
+            );
+
+            console.log("API Response:", res.data);
+
+            // ✅ STEP 1: Always read from res.data.data
+            const reviews = res.data?.data || [];
+
+            // ✅ STEP 2: Filter review for THIS trip
+            const review = reviews.find(
+                (r) => String(r.tripId) === String(trip._id)
+            );
+
+            if (!review) {
+                toast.error("No review found for this trip");
+                return;
+            }
+
+            // ✅ STEP 3: Set state & open dialog
+            setTripReview(review);
+            setReviewOpen(true);
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to fetch review");
+        }
+    };
+
+const handleSendNotification = async () => {
+  if (!notifyMessage.trim() || selectedTravelers.length === 0) return;
+
+  try {
+    setSending(true);
+
+    // Send notification to each selected traveler
+    await Promise.all(
+      selectedTravelers.map((travelerId) =>
+        axios.post(
+          "http://localhost:5000/api/organizer/notification",
+          {
+            type: notifyType,
+            message: notifyMessage,
+            travelerId, // ✅ Correct traveler ID here
+          },
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          }
+        )
+      )
+    );
+
+    toast.success("Notification sent successfully");
+
+    setNotifyMessage("");
+    setNotifyType("info");
+    setSelectedTravelers([]);
+    setNotifyOpen(false);
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to send notification");
+  } finally {
+    setSending(false);
+  }
+};
+
+
+
+
 
 
     // Fetch participant count
@@ -690,7 +803,7 @@ export default function TripListDetails() {
                     </Card>
                 </div>
 
-                {/* Right Section */}
+                {/* ================= RIGHT SECTION ================= */}
                 <div className="space-y-4">
                     <Card className="sticky top-6">
                         <CardHeader>
@@ -699,336 +812,530 @@ export default function TripListDetails() {
                         </CardHeader>
 
                         <CardContent className="space-y-4">
-                            {/* EDIT TRIP (Dialog) */}
-                            <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                                <div>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full gap-2 bg-blue" onClick={openEditDialog}>
-                                            Edit Trip
-                                        </Button>
-                                    </DialogTrigger>
 
-                                    <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-auto">
-                                        <DialogHeader>
-                                            <DialogTitle className="!text-xl !font-bold flex justify-start gap-3"><Edit className="text-red-500" />Edit Trip Details</DialogTitle>
-                                            <p> Update the information for this trip.</p>
-                                        </DialogHeader>
+                            {/* ================= UPCOMING TRIP ================= */}
+                            {tripStatus === "upcoming" && (
+                                <>
+                                    {/* EDIT TRIP */}
+                                    <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button className="w-full gap-2 bg-blue" onClick={openEditDialog}>
+                                                Edit Trip
+                                            </Button>
+                                        </DialogTrigger>
 
-                                        <form onSubmit={handleUpdateTrip} className="space-y-6">
+                                        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-auto">
+                                            <DialogHeader>
+                                                <DialogTitle className="!text-xl !font-bold flex gap-3">
+                                                    <Edit className="text-red-500" />
+                                                    Edit Trip Details
+                                                </DialogTitle>
+                                                <p>Update the information for this trip.</p>
+                                            </DialogHeader>
 
-                                            {/* BASIC INFO */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {/* 🔥 FULL EDIT FORM — UNCHANGED */}
+                                            <form onSubmit={handleUpdateTrip} className="space-y-6">
 
+                                                {/* BASIC INFO */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                                    <div>
+                                                        <Label>Title</Label>
+                                                        <Input
+                                                            placeholder="Trip Title"
+                                                            value={editData.title}
+                                                            onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <Label>Price</Label>
+                                                        <Input
+                                                            placeholder="Price"
+                                                            value={editData.price}
+                                                            onChange={(e) => setEditData({ ...editData, price: e.target.value })}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <Label>Location</Label>
+                                                        <Input
+                                                            placeholder="Location"
+                                                            value={editData.location}
+                                                            onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <Label>Participants</Label>
+                                                        <Input
+                                                            placeholder="Participants"
+                                                            value={editData.participants}
+                                                            onChange={(e) => setEditData({ ...editData, participants: e.target.value })}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <Label>Start Date</Label>
+                                                        <Input
+                                                            type="date"
+                                                            value={editData.startDate}
+                                                            onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <Label>End Date</Label>
+                                                        <Input
+                                                            type="date"
+                                                            value={editData.endDate}
+                                                            onChange={(e) => setEditData({ ...editData, endDate: e.target.value })}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* DESCRIPTION */}
                                                 <div>
-                                                    <Label>Title</Label>
-                                                    <Input
-                                                        placeholder="Trip Title"
-                                                        value={editData.title}
-                                                        onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                                                    <Label>Description</Label>
+                                                    <Textarea
+                                                        rows={4}
+                                                        placeholder="Description"
+                                                        value={editData.description}
+                                                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
                                                     />
                                                 </div>
 
+                                                {/* CHECKBOX INCLUSIONS */}
                                                 <div>
-                                                    <Label>Price</Label>
-                                                    <Input
-                                                        placeholder="Price"
-                                                        value={editData.price}
-                                                        onChange={(e) => setEditData({ ...editData, price: e.target.value })}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label>Location</Label>
-                                                    <Input
-                                                        placeholder="Location"
-                                                        value={editData.location}
-                                                        onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label>Participants</Label>
-                                                    <Input
-                                                        placeholder="Participants"
-                                                        value={editData.participants}
-                                                        onChange={(e) => setEditData({ ...editData, participants: e.target.value })}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label>Start Date</Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={editData.startDate}
-                                                        onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <Label>End Date</Label>
-                                                    <Input
-                                                        type="date"
-                                                        value={editData.endDate}
-                                                        onChange={(e) => setEditData({ ...editData, endDate: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* DESCRIPTION */}
-                                            <div>
-                                                <Label>Description</Label>
-                                                <Textarea
-                                                    rows={4}
-                                                    placeholder="Description"
-                                                    value={editData.description}
-                                                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                                                />
-                                            </div>
-
-                                            {/* CHECKBOX INCLUSIONS */}
-                                            <div>
-                                                <Label className="font-semibold text-lg">Inclusions</Label>
-                                                <div className="flex gap-4 flex-wrap mt-2">
-                                                    {["meals", "stay", "transport", "activities"].map((inc) => (
-                                                        <label key={inc} className="flex items-center gap-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={!!editData.inclusions?.[inc]}
-                                                                onChange={(e) =>
-                                                                    setEditData({
-                                                                        ...editData,
-                                                                        inclusions: {
-                                                                            ...editData.inclusions,
-                                                                            [inc]: e.target.checked,
-                                                                        },
-                                                                    })
-                                                                }
-                                                            />
-                                                            <span className="capitalize">{inc}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* INCLUSION POINTS */}
-                                            <div className="space-y-2">
-                                                <Label className="font-semibold text-lg">Inclusion Points</Label>
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        value={newInclusion}
-                                                        placeholder="Add inclusion point"
-                                                        onChange={(e) => setNewInclusion(e.target.value)}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (newInclusion.trim()) {
-                                                                setEditData({
-                                                                    ...editData,
-                                                                    inclusionspoint: [...editData.inclusionspoint, newInclusion.trim()],
-                                                                });
-                                                                setNewInclusion("");
-                                                            }
-                                                        }}
-                                                    >
-                                                        Add
-                                                    </Button>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 mt-2">
-                                                    {editData.inclusionspoint.map((point, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm"
-                                                        >
-                                                            <span>{point}</span>
-                                                            <XIcon
-                                                                size={14}
-                                                                className="cursor-pointer text-red-500 hover:text-red-600"
-                                                                onClick={() =>
-                                                                    setEditData({
-                                                                        ...editData,
-                                                                        inclusionspoint: editData.inclusionspoint.filter((_, i) => i !== index),
-                                                                    })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* EXCLUSION POINTS */}
-                                            <div className="space-y-2">
-                                                <Label className="font-semibold text-lg">Exclusion Points</Label>
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        value={newExclusion}
-                                                        placeholder="Add exclusion point"
-                                                        onChange={(e) => setNewExclusion(e.target.value)}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            if (newExclusion.trim()) {
-                                                                setEditData({
-                                                                    ...editData,
-                                                                    exclusionspoint: [...editData.exclusionspoint, newExclusion.trim()],
-                                                                });
-                                                                setNewExclusion("");
-                                                            }
-                                                        }}
-                                                    >
-                                                        Add
-                                                    </Button>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 mt-2">
-                                                    {editData.exclusionspoint.map((point, index) => (
-                                                        <div
-                                                            key={index}
-                                                            className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm">
-                                                            <span>{point}</span>
-                                                            <XIcon
-                                                                size={14}
-                                                                className="cursor-pointer text-red-500 hover:text-red-600"
-                                                                onClick={() =>
-                                                                    setEditData({
-                                                                        ...editData,
-                                                                        exclusionspoint: editData.exclusionspoint.filter((_, i) => i !== index),
-                                                                    })
-                                                                }
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            {/* PHOTOS */}
-                                            <div>
-                                                <Label className="font-semibold text-lg">Trip Photos</Label>
-                                                <div className="flex gap-3 flex-wrap mt-2">
-                                                    {editData.tripPhoto.map((photo, idx) => {
-                                                        const url =
-                                                            typeof photo === "string"
-                                                                ? `http://localhost:5000/${photo}`
-                                                                : URL.createObjectURL(photo);
-
-                                                        return (
-                                                            <div key={idx} className="relative">
-                                                                <img
-                                                                    src={url}
-                                                                    alt=""
-                                                                    className="w-24 h-16 object-cover rounded"
+                                                    <Label className="font-semibold text-lg">Inclusions</Label>
+                                                    <div className="flex gap-4 flex-wrap mt-2">
+                                                        {["meals", "stay", "transport", "activities"].map((inc) => (
+                                                            <label key={inc} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!editData.inclusions?.[inc]}
+                                                                    onChange={(e) =>
+                                                                        setEditData({
+                                                                            ...editData,
+                                                                            inclusions: {
+                                                                                ...editData.inclusions,
+                                                                                [inc]: e.target.checked,
+                                                                            },
+                                                                        })
+                                                                    }
                                                                 />
+                                                                <span className="capitalize">{inc}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* INCLUSION POINTS */}
+                                                <div className="space-y-2">
+                                                    <Label className="font-semibold text-lg">Inclusion Points</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            value={newInclusion}
+                                                            placeholder="Add inclusion point"
+                                                            onChange={(e) => setNewInclusion(e.target.value)}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (newInclusion.trim()) {
+                                                                    setEditData({
+                                                                        ...editData,
+                                                                        inclusionspoint: [...editData.inclusionspoint, newInclusion.trim()],
+                                                                    });
+                                                                    setNewInclusion("");
+                                                                }
+                                                            }}
+                                                        >
+                                                            Add
+                                                        </Button>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {editData.inclusionspoint.map((point, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm"
+                                                            >
+                                                                <span>{point}</span>
                                                                 <XIcon
-                                                                    className="absolute top-1 right-1 text-red-500 cursor-pointer"
-                                                                    size={16}
+                                                                    size={14}
+                                                                    className="cursor-pointer text-red-500 hover:text-red-600"
                                                                     onClick={() =>
                                                                         setEditData({
                                                                             ...editData,
-                                                                            tripPhoto: editData.tripPhoto.filter((_, i) => i !== idx),
+                                                                            inclusionspoint: editData.inclusionspoint.filter((_, i) => i !== index),
                                                                         })
                                                                     }
                                                                 />
                                                             </div>
-                                                        );
-                                                    })}
-                                                    <Input
-                                                        type="file"
-                                                        multiple
-                                                        onChange={(e) =>
-                                                            setEditData({
-                                                                ...editData,
-                                                                tripPhoto: [...editData.tripPhoto, ...Array.from(e.target.files)],
-                                                            })
-                                                        }
-                                                    />
+                                                        ))}
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            {/* PLAN DETAILS */}
-                                            <div>
-                                                <Label className="text-lg font-semibold">Plan Details</Label>
-                                                <div className="space-y-3 mt-2">
-                                                    {editData.planDetails.map((dayItem, idx) => (
-                                                        <div key={idx} className="flex gap-3 items-start">
+                                                {/* EXCLUSION POINTS */}
+                                                <div className="space-y-2">
+                                                    <Label className="font-semibold text-lg">Exclusion Points</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            value={newExclusion}
+                                                            placeholder="Add exclusion point"
+                                                            onChange={(e) => setNewExclusion(e.target.value)}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (newExclusion.trim()) {
+                                                                    setEditData({
+                                                                        ...editData,
+                                                                        exclusionspoint: [...editData.exclusionspoint, newExclusion.trim()],
+                                                                    });
+                                                                    setNewExclusion("");
+                                                                }
+                                                            }}
+                                                        >
+                                                            Add
+                                                        </Button>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {editData.exclusionspoint.map((point, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                                                                <span>{point}</span>
+                                                                <XIcon
+                                                                    size={14}
+                                                                    className="cursor-pointer text-red-500 hover:text-red-600"
+                                                                    onClick={() =>
+                                                                        setEditData({
+                                                                            ...editData,
+                                                                            exclusionspoint: editData.exclusionspoint.filter((_, i) => i !== index),
+                                                                        })
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {/* PHOTOS */}
+                                                <div>
+                                                    <Label className="font-semibold text-lg">Trip Photos</Label>
+                                                    <div className="flex gap-3 flex-wrap mt-2">
+                                                        {editData.tripPhoto.map((photo, idx) => {
+                                                            const url =
+                                                                typeof photo === "string"
+                                                                    ? `http://localhost:5000/${photo}`
+                                                                    : URL.createObjectURL(photo);
 
-                                                            <Input
-                                                                type="number"
-                                                                placeholder="Day"
-                                                                className="w-20"
-                                                                value={dayItem.day}
-                                                                onChange={(e) => {
-                                                                    const updated = [...editData.planDetails];
-                                                                    updated[idx].day = Number(e.target.value);
-                                                                    setEditData({ ...editData, planDetails: updated });
-                                                                }}
-                                                            />
+                                                            return (
+                                                                <div key={idx} className="relative">
+                                                                    <img
+                                                                        src={url}
+                                                                        alt=""
+                                                                        className="w-24 h-16 object-cover rounded"
+                                                                    />
+                                                                    <XIcon
+                                                                        className="absolute top-1 right-1 text-red-500 cursor-pointer"
+                                                                        size={16}
+                                                                        onClick={() =>
+                                                                            setEditData({
+                                                                                ...editData,
+                                                                                tripPhoto: editData.tripPhoto.filter((_, i) => i !== idx),
+                                                                            })
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        <Input
+                                                            type="file"
+                                                            multiple
+                                                            onChange={(e) =>
+                                                                setEditData({
+                                                                    ...editData,
+                                                                    tripPhoto: [...editData.tripPhoto, ...Array.from(e.target.files)],
+                                                                })
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
 
-                                                            <Input
-                                                                placeholder="Title"
-                                                                className="w-1/4"
-                                                                value={dayItem.title}
-                                                                onChange={(e) => {
-                                                                    const updated = [...editData.planDetails];
-                                                                    updated[idx].title = e.target.value;
-                                                                    setEditData({ ...editData, planDetails: updated });
-                                                                }}
-                                                            />
+                                                {/* PLAN DETAILS */}
+                                                <div>
+                                                    <Label className="text-lg font-semibold">Plan Details</Label>
+                                                    <div className="space-y-3 mt-2">
+                                                        {editData.planDetails.map((dayItem, idx) => (
+                                                            <div key={idx} className="flex gap-3 items-start">
 
-                                                            <Textarea
-                                                                placeholder="Description"
-                                                                className="w-1/2"
-                                                                rows={2}
-                                                                value={dayItem.plan}
-                                                                onChange={(e) => {
-                                                                    const updated = [...editData.planDetails];
-                                                                    updated[idx].plan = e.target.value;
-                                                                    setEditData({ ...editData, planDetails: updated });
-                                                                }}
-                                                            />
+                                                                <Input
+                                                                    type="number"
+                                                                    placeholder="Day"
+                                                                    className="w-20"
+                                                                    value={dayItem.day}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...editData.planDetails];
+                                                                        updated[idx].day = Number(e.target.value);
+                                                                        setEditData({ ...editData, planDetails: updated });
+                                                                    }}
+                                                                />
 
-                                                            <Button
-                                                                variant="destructive"
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const updated = [...editData.planDetails];
-                                                                    updated.splice(idx, 1);
-                                                                    setEditData({ ...editData, planDetails: updated });
-                                                                }}>
-                                                                Remove
-                                                            </Button>
-                                                        </div>
-                                                    ))}
+                                                                <Input
+                                                                    placeholder="Title"
+                                                                    className="w-1/4"
+                                                                    value={dayItem.title}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...editData.planDetails];
+                                                                        updated[idx].title = e.target.value;
+                                                                        setEditData({ ...editData, planDetails: updated });
+                                                                    }}
+                                                                />
 
-                                                    <Button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setEditData({
-                                                                ...editData,
-                                                                planDetails: [
-                                                                    ...editData.planDetails,
-                                                                    { day: "", title: "", plan: "" },
-                                                                ],
-                                                            })
-                                                        }
-                                                    >
-                                                        Add Day
+                                                                <Textarea
+                                                                    placeholder="Description"
+                                                                    className="w-1/2"
+                                                                    rows={2}
+                                                                    value={dayItem.plan}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...editData.planDetails];
+                                                                        updated[idx].plan = e.target.value;
+                                                                        setEditData({ ...editData, planDetails: updated });
+                                                                    }}
+                                                                />
+
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const updated = [...editData.planDetails];
+                                                                        updated.splice(idx, 1);
+                                                                        setEditData({ ...editData, planDetails: updated });
+                                                                    }}>
+                                                                    Remove
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+
+                                                        <Button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setEditData({
+                                                                    ...editData,
+                                                                    planDetails: [
+                                                                        ...editData.planDetails,
+                                                                        { day: "", title: "", plan: "" },
+                                                                    ],
+                                                                })
+                                                            }
+                                                        >
+                                                            Add Day
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {/* ACTION BUTTONS */}
+                                                <div className="flex justify-end gap-3 pt-4">
+                                                    <Button variant="outline" type="button" onClick={() => setEditOpen(false)}>
+                                                        Cancel
                                                     </Button>
+                                                    <Button type="submit">Save Changes</Button>
+                                                </div>
+                                            </form>
+                                        </DialogContent>
+                                    </Dialog>
+                                </>
+                            )}
+
+                            {/* 🔔 SEND NOTIFICATION (UPCOMING + ONGOING) */}
+                            {(tripStatus === "upcoming" || tripStatus === "ongoing") && (
+                                <Button
+                                    className="w-full bg-yellow-500 text-white hover:bg-yellow-600"
+                                    onClick={() => setNotifyOpen(true)}
+                                >
+                                    Send Notification
+                                </Button>
+                            )}
+                          <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
+  <DialogContent className="sm:max-w-[540px] rounded-2xl p-6">
+    <DialogHeader>
+      <DialogTitle className="text-2xl font-bold">Send Notification</DialogTitle>
+      <DialogDescription className="text-muted-foreground">
+        Notify selected travelers of this trip
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="mt-4 space-y-4">
+      {/* Notification Type */}
+      <div>
+        <label className="text-sm font-semibold mb-1 block">Notification Type</label>
+        <div className="flex gap-3">
+          {["info", "trip", "alert"].map((type) => (
+            <Button
+              key={type}
+              type="button"
+              variant={notifyType === type ? "default" : "outline"}
+              className={`capitalize ${
+                notifyType === type
+                  ? type === "alert"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : type === "trip"
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-gray-700 hover:bg-gray-800 text-white"
+                  : ""
+              }`}
+              onClick={() => setNotifyType(type)}
+            >
+              {type}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message */}
+      <div>
+        <label className="text-sm font-semibold mb-1 block">Message</label>
+        <textarea
+          value={notifyMessage}
+          onChange={(e) => setNotifyMessage(e.target.value)}
+          placeholder="Enter message for travelers..."
+          className="w-full min-h-[120px] rounded-xl border p-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+        />
+      </div>
+
+      {/* Participants Selection */}
+      <div>
+        <label className="text-sm font-semibold mb-1 block">Select Travelers</label>
+        <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+          {participants.map((traveler) => (
+            <div key={traveler._id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectedTravelers.includes(traveler._id)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedTravelers((prev) => [...prev, traveler._id]);
+                  } else {
+                    setSelectedTravelers((prev) =>
+                      prev.filter((id) => id !== traveler._id)
+                    );
+                  }
+                }}
+              />
+              <span>{traveler.name || "Anonymous"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Footer */}
+    <div className="flex justify-end gap-3 pt-4">
+      <Button
+        variant="outline"
+        onClick={() => {
+          setNotifyOpen(false);
+          setNotifyMessage("");
+          setNotifyType("info");
+          setSelectedTravelers(participants.map((p) => p._id));
+        }}
+      >
+        Cancel
+      </Button>
+
+      <Button
+        className="bg-yellow-500 text-white hover:bg-yellow-600"
+        disabled={sending || !notifyMessage.trim() || selectedTravelers.length === 0}
+        onClick={handleSendNotification}
+      >
+        {sending ? "Sending..." : "Send Notification"}
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+
+
+
+                            {/* CANCEL TRIP (ONLY UPCOMING) */}
+                            {tripStatus === "upcoming" && (
+                                <Button
+                                    className="w-full bg-red-600 text-white hover:bg-red-700"
+                                    onClick={handleDeleteTrip}
+                                >
+                                    Cancel Trip
+                                </Button>
+                            )}
+
+                            {/* ================= COMPLETED TRIP ================= */}
+                            {tripStatus === "completed" && (
+                                <Button
+                                    className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                                    onClick={handleGetReview}
+                                >
+                                    Review
+                                </Button>
+                            )}
+                            <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+                                <DialogContent className="sm:max-w-[520px] rounded-2xl p-6">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-2xl font-bold">
+                                            Trip Review
+                                        </DialogTitle>
+                                        <DialogDescription className="text-muted-foreground">
+                                            Feedback shared by the traveler
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    {tripReview && (
+                                        <div className="mt-5 space-y-4">
+
+                                            {/* Top Row: Traveler + Rating */}
+                                            <div className="flex items-start justify-between gap-4 rounded-xl bg-muted p-4">
+
+                                                {/* LEFT SIDE — Traveler + Review */}
+                                                <div className="flex gap-3">
+                                                    {/* Avatar */}
+                                                    <div className="h-11 w-11 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                                                        {(tripReview.TravelerId?.name || "A")[0].toUpperCase()}
+                                                    </div>
+
+                                                    <div>
+                                                        <p className="font-semibold text-sm">
+                                                            {tripReview.TravelerId?.name || "Anonymous Traveler"}
+                                                        </p>
+
+
+
+                                                        <p className="text-sm text-muted-foreground leading-relaxed max-w-[300px]">
+                                                            {tripReview.review}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* RIGHT SIDE — Rating */}
+                                                <div className="flex flex-col items-end">
+                                                    {/* <span className="text-xs text-muted-foreground mb-1">
+                                                      Rating
+                                                      </span> */}
+                                                    <div className="flex gap-0.5 text-yellow-400">
+                                                        {"⭐".repeat(Math.round(tripReview.rating))}
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* ACTION BUTTONS */}
-                                            <div className="flex justify-end gap-3 pt-4">
-                                                <Button variant="outline" type="button" onClick={() => setEditOpen(false)}>
-                                                    Cancel
-                                                </Button>
-                                                <Button type="submit">Save Changes</Button>
-                                            </div>
-                                        </form>
 
-                                    </DialogContent>
-                                </div>
+
+                                        </div>
+                                    )}
+                                </DialogContent>
                             </Dialog>
 
-                            {/* Participants Dialog */}
+
+
+
+                            {/* ================= COMMON (ALL TRIPS) ================= */}
                             <Dialog open={participantsOpen} onOpenChange={setParticipantsOpen}>
                                 <DialogTrigger asChild>
                                     <Button variant="outline" className="w-full gap-2">
@@ -1065,7 +1372,7 @@ export default function TripListDetails() {
                                                             </div>
                                                         </div>
 
-                                                        <ChevronDown
+                                                        {/* <ChevronDown
                                                             className={`cursor-pointer transition-transform ${openParticipant === p._id ? "rotate-180" : ""}`}
                                                             onClick={() => {
                                                                 if (openParticipant === p._id) {
@@ -1075,11 +1382,11 @@ export default function TripListDetails() {
                                                                     fetchEmergencyContacts(p._id);
                                                                 }
                                                             }}
-                                                        />
+                                                        /> */}
                                                     </div>
 
                                                     {/* Emergency Contact Dropdown */}
-                                                    {openParticipant === p._id && (
+                                                    {/* {openParticipant === p._id && (
                                                         <div className="mt-3 bg-gray-50 p-3 rounded-md animate-slideDown">
                                                             <h4 className="font-semibold text-sm mb-2">Emergency Contacts</h4>
 
@@ -1100,44 +1407,49 @@ export default function TripListDetails() {
                                                                 <p className="text-sm text-muted-foreground">No emergency contacts found.</p>
                                                             )}
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                 </div>
                                             ))
                                         )}
                                     </div>
                                 </DialogContent>
                             </Dialog>
-
-
                             <Button
                                 variant="secondary"
                                 className="w-full gap-2"
-                                onClick={() => handleChat(trip.contactPhone)}>
-                                <MessageCircle className="h-4 w-4" /> Chat with Group
+                                onClick={() => handleChat(trip.contactPhone)}
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                                Chat with Group
                             </Button>
 
-                            <Button
-                                className="w-full bg-red-600 text-white hover:bg-red-700"
-                                onClick={handleDeleteTrip}>
-                                Cancel
-                            </Button>
                             <Separator />
 
                             <div className="space-y-2 text-sm text-muted-foreground">
                                 <p className="flex items-center gap-2">
-                                    <CheckCircle className="h-4 w-4 text-green-600" /> Free cancellation up to 30 days
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    Free cancellation up to 30 days
                                 </p>
                                 <p className="flex items-center gap-2">
-                                    <CheckCircle className="h-4 w-4 text-green-600" /> Instant confirmation
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    Instant confirmation
                                 </p>
                                 <p className="flex items-center gap-2">
-                                    <CheckCircle className="h-4 w-4 text-green-600" /> 24/7 customer support
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    24/7 customer support
                                 </p>
                             </div>
+
                         </CardContent>
                     </Card>
                 </div>
+
+
             </div>
         </div>
     );
 }
+
+
+
+

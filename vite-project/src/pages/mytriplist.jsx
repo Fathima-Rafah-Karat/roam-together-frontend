@@ -86,7 +86,7 @@ export default function TripsList() {
         >
           <Card
             className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
-            onClick={() => navigate(`/trips/${trip._id}`)}
+            // onClick={() => navigate(`/trips/${trip._id}`)}
           >
             {/* Trip Image */}
             <img
@@ -158,7 +158,7 @@ export default function TripsList() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-4xl font-display font-bold text-foreground mb-2">My Trips</h1>
+        <h1 className="text-4xl font-display  font-bold text-blue-400 mb-2">My Trips</h1>
         <p className="text-muted-foreground text-lg">
           Manage and view all your organized trips.
         </p>
