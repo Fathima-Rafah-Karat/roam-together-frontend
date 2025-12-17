@@ -273,7 +273,7 @@ const signupSchema = z
     confirmPassword: z.string(),
     fullName: z.string().min(2),
     phone: z.string().min(10),
-    role: z.enum(["Traveler", "Organizer", "Admin"]),
+    role: z.enum(["Traveler", "Organizer"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -295,7 +295,7 @@ const Auth = () => {
   const roleOptions = [
     { value: "Traveler", label: "Traveler", icon: UserCircle, description: "Join trips and explore" },
     { value: "Organizer", label: "Trip Organizer", icon: Briefcase, description: "Create and manage trips" },
-    { value: "Admin", label: "Admin", icon: Shield, description: "Manage the platform" },
+    // { value: "Admin", label: "Admin", icon: Shield, description: "Manage the platform" },
   ];
 
   // -----------------------------

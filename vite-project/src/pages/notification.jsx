@@ -52,6 +52,7 @@ export default function Notifications() {
   const navigate = useNavigate(); // <-- Added for Back navigation
 
   const token = localStorage.getItem("token");
+  
 
   const fetchNotifications = async () => {
     try {
@@ -96,7 +97,7 @@ export default function Notifications() {
       console.error("Error fetching notification:", err);
     }
   };
-
+console.log("TRAVELER TOKEN:", token);
   useEffect(() => {
     fetchNotifications();
   }, []);

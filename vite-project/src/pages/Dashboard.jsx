@@ -406,7 +406,7 @@ export default function DiscoverTrips() {
               {/* Registered Badge */}
               <div className="absolute top-3 right-3 z-20">
                 {isRegistered && (
-                  <Badge className="bg-green-600 text-white">Registered</Badge>
+                  <Badge className="!bg-green-600 text-white">Registered</Badge>
                 )}
               </div>
 

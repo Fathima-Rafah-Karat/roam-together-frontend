@@ -53,7 +53,7 @@ export default function TripListDetails() {
     const [notifyMessage, setNotifyMessage] = useState("");
     const [notifyType, setNotifyType] = useState("info");
     const [sending, setSending] = useState(false);
-    const [participant, setParticipant] = useState([]); // all participants
+    // const [participant, setParticipant] = useState([]); // all participants
     const [selectedTravelers, setSelectedTravelers] = useState([]); // selected for notification
 useEffect(() => {
   if (trip && Array.isArray(trip.participants)) {
@@ -176,45 +176,48 @@ useEffect(() => {
         }
     };
 
+
 const handleSendNotification = async () => {
-  if (!notifyMessage.trim() || selectedTravelers.length === 0) return;
+  if (!notifyMessage.trim() || selectedTravelers.length === 0) {
+    toast.error("Message and participants required");
+    return;
+  }
 
   try {
     setSending(true);
 
-    // Send notification to each selected traveler
+    const token = localStorage.getItem("token");
+
     await Promise.all(
-      selectedTravelers.map((travelerId) =>
+      selectedTravelers.map((authId) =>
         axios.post(
           "http://localhost:5000/api/organizer/notification",
           {
-            type: notifyType,
+            traveler: authId,        // ✅ authId of that participant
             message: notifyMessage,
-            travelerId, // ✅ Correct traveler ID here
+            type: notifyType,
           },
           {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
         )
       )
     );
-
     toast.success("Notification sent successfully");
 
     setNotifyMessage("");
     setNotifyType("info");
-    setSelectedTravelers([]);
     setNotifyOpen(false);
+
   } catch (error) {
-    console.error(error);
-    toast.error("Failed to send notification");
+    console.error("Error sending notification:", error);
+    toast.error(error.response?.data?.message || "Failed to send notification");
   } finally {
     setSending(false);
   }
 };
-
-
-
 
 
 
@@ -1205,29 +1208,32 @@ const handleSendNotification = async () => {
       </div>
 
       {/* Participants Selection */}
-      <div>
-        <label className="text-sm font-semibold mb-1 block">Select Travelers</label>
-        <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
-          {participants.map((traveler) => (
-            <div key={traveler._id} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={selectedTravelers.includes(traveler._id)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedTravelers((prev) => [...prev, traveler._id]);
-                  } else {
-                    setSelectedTravelers((prev) =>
-                      prev.filter((id) => id !== traveler._id)
-                    );
-                  }
-                }}
-              />
-              <span>{traveler.name || "Anonymous"}</span>
-            </div>
-          ))}
-        </div>
+    {/* Participants Selection */}
+<div>
+  <label className="text-sm font-semibold mb-1 block">Select Travelers</label>
+
+  <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+    {participants.map((traveler) => (
+      <div key={traveler.authId} className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={selectedTravelers.includes(traveler.authId)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedTravelers((prev) => [...prev, traveler.authId]);
+            } else {
+              setSelectedTravelers((prev) =>
+                prev.filter((id) => id !== traveler.authId)
+              );
+            }
+          }}
+        />
+        <span>{traveler.name || "Anonymous"}</span>
       </div>
+    ))}
+  </div>
+</div>
+
     </div>
 
     {/* Footer */}
@@ -1449,7 +1455,6 @@ const handleSendNotification = async () => {
         </div>
     );
 }
-
 
 
 
