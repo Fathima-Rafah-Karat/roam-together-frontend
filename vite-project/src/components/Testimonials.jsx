@@ -131,7 +131,7 @@ const Testimonials = () => {
               variant="outline"
               onClick={() => setShowAll(true)}
             >
-              Show More Reviews
+              More Reviews
             </Button>
           </div>
         )}

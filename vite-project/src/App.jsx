@@ -29,6 +29,7 @@ import Manageuser from "./pages/manageuser";
 import Verifyorganizers from "./pages/Verifyorganizers";
 import Trips from "./pages/Trips";
 import AdminTripsDetails from "./pages/admintripsdetails";
+import FeaturedTripsdetails from "./components/FeaturedTripsdetails";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -39,6 +40,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+                  <Route path="/trips/:id" element={<FeaturedTripsdetails />} />
+
           <Route path="/auth" element={<Auth />} />
           <Route path="/dash" element={<Layout />}>
             <Route path="dashboard" element={<DiscoverTrips />} />

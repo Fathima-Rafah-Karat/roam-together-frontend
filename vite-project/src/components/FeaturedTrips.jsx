@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Card,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Users } from "lucide-react";
@@ -12,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 
 const FeaturedTrips = () => {
   const navigate = useNavigate();
-
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -20,9 +15,7 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get(
-          "http://localhost:5000/api/traveler/trips"
-        );
+        const res = await axios.get("http://localhost:5000/api/traveler/trips");
         setTrips(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
@@ -30,11 +23,10 @@ const FeaturedTrips = () => {
         setLoading(false);
       }
     };
-
     fetchTrips();
   }, []);
 
-  if (loading) return null;
+  if (loading) return <p className="text-center py-10">Loading trips...</p>;
 
   const displayedTrips = showAll ? trips : trips.slice(0, 6);
 
@@ -61,19 +53,15 @@ const FeaturedTrips = () => {
               <Card
                 key={trip._id}
                 className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
-               
+                onClick={() => navigate(`/trips/${trip._id}`)} // Navigate to details
               >
-                {/* Background Image */}
                 <img
                   src={imageUrl}
                   alt={trip.title}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-
-                {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/25 to-black/10" />
 
-                {/* Content */}
                 <div className="relative z-10 h-full flex flex-col justify-end p-6 text-white">
                   {/* Tags */}
                   {trip.tags?.length > 0 && (
@@ -90,12 +78,8 @@ const FeaturedTrips = () => {
                     </div>
                   )}
 
-                  {/* Title */}
-                  <CardTitle className="text-3xl font-bold mb-3">
-                    {trip.title}
-                  </CardTitle>
+                  <CardTitle className="text-3xl font-bold mb-3">{trip.title}</CardTitle>
 
-                  {/* Location */}
                   <CardDescription className="flex items-center gap-2 mb-2">
                     <div className="flex items-center rounded-lg px-2 gap-2 bg-white text-black">
                       <MapPin className="h-4 w-4 text-blue-500" />
@@ -103,7 +87,6 @@ const FeaturedTrips = () => {
                     </div>
                   </CardDescription>
 
-                  {/* Meta */}
                   <div className="flex gap-8 text-sm text-white pt-2">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-5 w-5" />
@@ -117,12 +100,11 @@ const FeaturedTrips = () => {
                     </span>
                   </div>
 
-                  {/* Button */}
                   <Button
                     className="w-full mt-4"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // navigate(`/dash/trip/${trip._id}`);
+                      navigate(`/trips/${trip._id}`);
                     }}
                   >
                     View Details
@@ -136,11 +118,7 @@ const FeaturedTrips = () => {
         {/* View All Trips */}
         {!showAll && trips.length > 3 && (
           <div className="text-center">
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => setShowAll(true)}
-            >
+            <Button size="lg" variant="outline" onClick={() => setShowAll(true)}>
               View All Trips
             </Button>
           </div>
