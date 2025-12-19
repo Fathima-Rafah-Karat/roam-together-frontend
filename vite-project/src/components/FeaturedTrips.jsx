@@ -113,7 +113,7 @@ const FeaturedTrips = () => {
 
                     <span className="flex items-center gap-1">
                       <Users className="h-5 w-5" />
-                      {trip.participants}/{trip.maxParticipants}
+                      {trip.participants}
                     </span>
                   </div>
 
