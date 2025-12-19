@@ -61,7 +61,7 @@ const FeaturedTrips = () => {
               <Card
                 key={trip._id}
                 className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
-                onClick={() => navigate(`/dash/trip/${trip._id}`)}
+               
               >
                 {/* Background Image */}
                 <img
