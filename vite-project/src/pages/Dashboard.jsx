@@ -344,7 +344,7 @@ export default function DiscoverTrips() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       <div>
         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-2">
           Discover Amazing Trips

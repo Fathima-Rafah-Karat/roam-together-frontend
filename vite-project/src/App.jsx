@@ -30,6 +30,10 @@ import Verifyorganizers from "./pages/Verifyorganizers";
 import Trips from "./pages/Trips";
 import AdminTripsDetails from "./pages/admintripsdetails";
 import FeaturedTripsdetails from "./components/FeaturedTripsdetails";
+import NoAccess from "./components/NoAccess";
+import JoinTripNoAccess from "./components/JoinTripNoAccess";
+import JoinTrip from "./components/JoinTriplist";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -41,6 +45,10 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
                   <Route path="/trips/:id" element={<FeaturedTripsdetails />} />
+                  <Route path="/no-access" element={<NoAccess />} />
+                  <Route path="/createtrip" element={<CreateTrip/>}/>
+                  <Route path="/join-trip-no-access" element={<JoinTripNoAccess />} />
+                  <Route path="/jointrip" element={<JoinTrip/>}/>
 
           <Route path="/auth" element={<Auth />} />
           <Route path="/dash" element={<Layout />}>
