@@ -321,6 +321,10 @@ const handleSendNotification = async () => {
         }
     }
 
+
+     const handleGroupChat = () => {
+  navigate(`/trip/${id}/chat`);
+};
     const handleDeleteTrip = async () => {
         try {
             const confirm = await new Promise((resolve) => {
@@ -1420,14 +1424,13 @@ const handleSendNotification = async () => {
                                     </div>
                                 </DialogContent>
                             </Dialog>
-                            <Button
-                                variant="secondary"
-                                className="w-full gap-2"
-                                onClick={() => handleChat(trip.contactPhone)}
-                            >
-                                <MessageCircle className="h-4 w-4" />
-                                Chat with Group
-                            </Button>
+                             <Button
+                variant="secondary"
+                className="w-full gap-2"
+                onClick={handleGroupChat}
+              >
+                <MessageCircle className="h-4 w-4" /> Chat with Group
+              </Button>
 
                             <Separator />
 
