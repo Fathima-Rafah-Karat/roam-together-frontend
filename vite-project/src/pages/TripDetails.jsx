@@ -467,9 +467,10 @@ export default function TripDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightboxOpen, trip, lightboxIndex]);
 
-  const handleChat = (phone) => {
-    window.open(`https://wa.me/${phone}`, "_blank");
-  };
+const handleGroupChat = () => {
+  navigate(`/trip/${id}/chat`);
+};
+
 
   const toggleDay = (day) => {
     setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
@@ -1096,13 +1097,13 @@ export default function TripDetails() {
                 </DialogContent>
               </Dialog>
 
-              <Button
+              {/* <Button
                 variant="secondary"
                 className="w-full gap-2"
-                onClick={handleChat}
+                onClick={handleGroupChat}
               >
                 <MessageCircle className="h-4 w-4" /> Chat with Group
-              </Button>
+              </Button> */}
   
 
 
