@@ -128,9 +128,9 @@ export default function TripDetails() {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxOpen, trip, lightboxIndex]);
 
-  const handleChat = (phone) => {
-    if (phone) window.open(`https://wa.me/${phone}`, "_blank");
-  };
+ const handleGroupChat = () => {
+  navigate(`/trip/${id}/chat`);
+};
 
   const toggleDay = (day) => {
     setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
@@ -646,12 +646,7 @@ const handleDeleteTrip = async () => {
                           <div>
                             <p className="font-medium capitalize">{p.name}</p>
                             <p className="text-sm text-muted-foreground">{p.email}</p>
-                            <button
-                              onClick={() => handleChat(p.phone)}
-                              className="text-green-600 text-sm underline"
-                            >
-                              Chat
-                            </button>
+                           
                           </div>
                         </div>
                       ))
@@ -663,7 +658,7 @@ const handleDeleteTrip = async () => {
               <Button
                 variant="secondary"
                 className="w-full gap-2"
-                onClick={() => handleChat(trip.contactPhone)}
+                onClick={handleGroupChat}
               >
                 <MessageCircle className="h-4 w-4" /> Chat with Group
               </Button>
