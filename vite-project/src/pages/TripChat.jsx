@@ -114,137 +114,168 @@
 // export default TripCard;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Send } from "lucide-react"; // lucide-react icons
+import { ArrowLeft, Send } from "lucide-react";
 import axios from "axios";
 import socket from "../socket";
+
+const API = "http://localhost:5000";
 
 const TripChat = () => {
   const { id: tripId } = useParams();
   const navigate = useNavigate();
-  const [tripName, setTripName] = useState(""); // Trip name state
-  const [tripPhoto, setTripPhoto] = useState(""); // Trip photo state
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const messagesEndRef = useRef(null);
 
-  /* FETCH TRIP DETAILS */
+  const [tripName, setTripName] = useState("");
+  const [tripPhoto, setTripPhoto] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
+
+  const messagesEndRef = useRef(null);
+  const token = localStorage.getItem("token");
+
+  /* =========================
+     LOAD TRIP + OLD MESSAGES
+  ========================= */
   useEffect(() => {
     if (!tripId) return;
 
-    const fetchTrip = async () => {
+    const loadData = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/traveler/${tripId}`);
-        const trip = res.data.data;
-        setTripName(trip?.title || "Trip Chat");
-        setTripPhoto(trip?.tripPhoto?.[0] ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\\+/, "")}` : "");
+        const tripRes = await axios.get(
+          `${API}/api/traveler/${tripId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setTripName(tripRes.data.data.title);
+        setTripPhoto(
+          tripRes.data.data.tripPhoto?.[0]
+            ? `${API}/${tripRes.data.data.tripPhoto[0]}`
+            : ""
+        );
+
+        const msgRes = await axios.get(
+          `${API}/api/traveler/${tripId}/messages`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        setMessages(msgRes.data.data);
       } catch (err) {
-        console.error("Error fetching trip:", err);
-        setTripName("Trip Chat");
+        console.error(err);
       }
     };
 
-    fetchTrip();
-  }, [tripId]);
+    loadData();
+  }, [tripId, token]);
 
-  /* JOIN ROOM */
+  /* =========================
+     SOCKET
+  ========================= */
   useEffect(() => {
     if (!tripId) return;
 
     socket.emit("joinRoom", tripId);
 
-    socket.on("receiveMessage", (data) => {
-      setMessages((prev) => [...prev, data]);
+    socket.on("receiveMessage", (msg) => {
+      setMessages((prev) => [...prev, msg]);
     });
 
     return () => socket.off("receiveMessage");
   }, [tripId]);
 
-  /* AUTO SCROLL */
+  /* =========================
+     AUTO SCROLL
+  ========================= */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* SEND MESSAGE */
+  /* =========================
+     SEND MESSAGE (SOCKET ONLY)
+  ========================= */
   const sendMessage = () => {
     if (!message.trim()) return;
 
     socket.emit("sendMessage", {
       tripId,
       text: message,
-      sender: "You",
     });
 
     setMessage("");
   };
 
   return (
-    <div className="w-full h-screen mx-auto mt-8 flex flex-col rounded-xl bg-[#e5ddd5] shadow-lg">
-      
+    <div className="w-full h-screen flex flex-col bg-[#e5ddd5]">
       {/* HEADER */}
-      <div className="bg-[#075e54] text-white p-4 text-lg font-bold rounded-t-xl flex items-center">
-        {/* Back button */}
-        <button
-          onClick={() => navigate(-1)}
-          className="mr-3 p-1 rounded-full hover:bg-[#064d45]"
-        >
+      <div className="bg-[#075e54] text-white p-4 flex items-center">
+        <button onClick={() => navigate(-1)} className="mr-3">
           <ArrowLeft size={24} />
         </button>
-
-        {/* Trip photo */}
         {tripPhoto && (
           <img
             src={tripPhoto}
             alt="Trip"
-            className="h-10 w-10 rounded-full object-cover mr-2 border-2 border-white"
+            className="h-10 w-10 rounded-full mr-2 object-cover"
           />
         )}
-
-        {/* Trip name */}
-        {tripName || "Trip Chat"}
+        <span className="font-bold">{tripName}</span>
       </div>
 
       {/* MESSAGES */}
       <div className="flex-1 p-4 overflow-y-auto space-y-2">
-        {messages.map((msg, index) => {
-          const isMe = msg.sender === "You";
-
-          return (
-            <div
-              key={index}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-[75%] px-4 py-2 rounded-lg text-sm shadow
-                  ${isMe ? "bg-[#dcf8c6]" : "bg-white"}
-                `}
-              >
-                {!isMe && (
-                  <div className="text-[11px] font-bold text-[#075e54] mb-1">
-                    {msg.sender}
-                  </div>
-                )}
-                {msg.text}
+        {messages.map((msg, index) => (
+          <div key={index} className="flex justify-start">
+            <div className="bg-white px-4 py-2 rounded-lg shadow max-w-[70%]">
+              <div className="text-[11px] font-bold text-gray-600 mb-1">
+                {msg.sender}
               </div>
+              {msg.text}
             </div>
-          );
-        })}
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* INPUT */}
-      <div className="flex items-center p-3 bg-gray-100 rounded-b-xl">
+      <div className="flex items-center p-3 bg-gray-100">
         <input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message"
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          className="flex-1 px-4 py-2 rounded-full outline-none text-sm"
+          placeholder="Type a message"
+          className="flex-1 px-4 py-2 rounded-full outline-none"
         />
         <button
           onClick={sendMessage}
-          className="ml-3 w-10 h-10 flex items-center justify-center rounded-full bg-[#075e54] text-white text-lg"
+          className="ml-3 w-10 h-10 flex items-center justify-center rounded-full bg-[#075e54] text-white"
         >
           <Send size={18} />
         </button>
@@ -254,4 +285,5 @@ const TripChat = () => {
 };
 
 export default TripChat;
+
 
