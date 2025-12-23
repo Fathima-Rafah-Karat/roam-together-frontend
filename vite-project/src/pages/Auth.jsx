@@ -263,8 +263,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, UserCircle, Briefcase, Shield } from "lucide-react";
-import { Toaster, toast } from "react-hot-toast"; 
+import { MapPin, UserCircle, Briefcase } from "lucide-react";
+import { Toaster, toast } from "react-hot-toast";
 
 const signupSchema = z
   .object({
@@ -295,12 +295,8 @@ const Auth = () => {
   const roleOptions = [
     { value: "Traveler", label: "Traveler", icon: UserCircle, description: "Join trips and explore" },
     { value: "Organizer", label: "Trip Organizer", icon: Briefcase, description: "Create and manage trips" },
-    // { value: "Admin", label: "Admin", icon: Shield, description: "Manage the platform" },
   ];
 
-  // -----------------------------
-  // Redirect user based on role and verification status
-  // -----------------------------
   const redirectUser = async (role, userId, token) => {
     const cleanRole = role?.trim().toLowerCase();
 
@@ -330,8 +326,7 @@ const Auth = () => {
 
         // Pending or not submitted
         navigate("/verification");
-
-      } catch (err) {
+      } catch {
         navigate("/verification");
       }
 
@@ -371,14 +366,14 @@ const Auth = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", user.role);
-      localStorage.setItem("userId", user._id); // unified key
+      localStorage.setItem("userId", user._id);
 
       toast.success(response.data.message || "Account Created!");
 
       redirectUser(user.role, user._id, token);
     } catch (err) {
       if (err.response?.status === 409) {
-        toast.error("User already exists. Please log in."); 
+        toast.error("User already exists. Please log in.");
       } else {
         toast.error(err.response?.data?.message || err.message);
       }
@@ -387,7 +382,6 @@ const Auth = () => {
     }
   };
 
-  
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -405,22 +399,21 @@ const Auth = () => {
 
       localStorage.setItem("token", token);
       localStorage.setItem("role", user.role);
-      localStorage.setItem("userId", user._id); // unified key
+      localStorage.setItem("userId", user._id);
 
-      toast.success(response.data.message || "Login Successful!"); 
+      toast.success(response.data.message || "Login Successful!");
 
-      await redirectUser(user.role, user._id, token);
+      redirectUser(user.role, user._id, token);
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message); 
+      toast.error(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/10">
-      <Toaster position="top-center" /> 
+      <Toaster position="top-center" />
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className="bg-primary p-2 rounded-lg">
@@ -445,19 +438,20 @@ const Auth = () => {
                 <CardDescription>Log in to continue</CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <Label>Email</Label>
-                    <Input name="login-email" type="email" required />
-                  </div>
-                  <div>
-                    <Label>Password</Label>
-                    <Input name="login-password" type="password" required />
-                  </div>
-                  <Button className="w-full" disabled={loading}>
-                    {loading ? "Logging In..." : "Log In"}
-                  </Button>
-                </form>
+             <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+  <div>
+    <Label>Email</Label>
+    <Input name="login-email" type="email" required autoComplete="off" />
+  </div>
+  <div>
+    <Label>Password</Label>
+    <Input name="login-password" type="password" required autoComplete="new-password" />
+  </div>
+  <Button className="w-full" disabled={loading}>
+    {loading ? "Logging In..." : "Log In"}
+  </Button>
+</form>
+
               </CardContent>
             </Card>
           </TabsContent>
@@ -477,7 +471,7 @@ const Auth = () => {
                   </div>
                   <div>
                     <Label>Email</Label>
-                    <Input name="signup-email" type="email" required />
+                    <Input name="signup-email" type="email" required  autoComplete="off"/>
                   </div>
                   <div>
                     <Label>Phone</Label>
@@ -485,7 +479,7 @@ const Auth = () => {
                   </div>
                   <div>
                     <Label>Password</Label>
-                    <Input name="signup-password" type="password" required />
+                    <Input name="signup-password" type="password" required autoComplete="new-password"/>
                   </div>
                   <div>
                     <Label>Confirm Password</Label>
