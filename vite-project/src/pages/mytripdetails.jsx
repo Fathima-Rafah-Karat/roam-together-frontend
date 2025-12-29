@@ -66,10 +66,12 @@ export default function TripDetails() {
         const res = await axios.get(
           `http://localhost:5000/api/traveler/participants/${trip._id}`
         );
-
+    
         if (res.data.success) {
           setParticipantCount(res.data.count);
         }
+         console.log(res.data.data);
+         
       } catch (err) {
         console.error("Error fetching participant count:", err);
       }
@@ -144,13 +146,20 @@ export default function TripDetails() {
 
   const fetchParticipants = async () => {
     try {
+      console.log("hihhi");
+      
       const res = await axios.get(
         `http://localhost:5000/api/traveler/participants/${trip._id}`
+        
       );
+      console.log(res.data);
+      
+
 
       if (res.data.success) {
         setParticipants(res.data.data); 
       }
+      console.log(res.data.data);
     } catch (error) {
       console.error("Error loading participants:", error);
     }
@@ -633,27 +642,32 @@ const handleDeleteTrip = async () => {
                       <p className="text-center text-muted-foreground">No participants yet.</p>
                     ) : (
                       participants.map((p) => (
-                        <div
-                          key={p._id}
-                          className="flex items-center gap-3 p-2 border rounded-md"
-                        >
-                          <Avatar>
-                            <AvatarImage
-                              src={`http://localhost:5000/${p.photo?.replace(/^\\+/, "")}`}
-                            />
-                            <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium capitalize">{p.name}</p>
-                            <p className="text-sm text-muted-foreground">{p.email}</p>
-                           
-                          </div>
-                        </div>
+                         <div className="flex items-center gap-3">
+    <Avatar>
+      {p.photo ? (
+        <AvatarImage
+          src={`http://localhost:5000/${p.photo.replace(/^\+/, "")}`}
+          alt={p.name || p.username}
+        />
+      ) : null}
+
+      <AvatarFallback>
+        {(p.name || p.username)?.charAt(0).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+
+    <div>
+      <p className="font-medium capitalize">{p.name ?? p.username}</p>
+      <p className="text-sm text-muted-foreground">{p.email}</p>
+    </div>
+  </div>
                       ))
                     )}
                   </div>
                 </DialogContent>
               </Dialog>
+
+
 
               <Button
                 variant="secondary"

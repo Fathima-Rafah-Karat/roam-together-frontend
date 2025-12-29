@@ -266,6 +266,9 @@ const handleSendNotification = async () => {
             if (res.data.success) {
                 setParticipants(res.data.data);
             }
+            console.log(res.data.data);
+            console.log("test1");
+            
         } catch (error) {
             console.error("Error loading participants:", error);
         }
@@ -436,6 +439,7 @@ const handleSendNotification = async () => {
             formData.append("inclusionspoint", JSON.stringify(cleanPointsToArray(editData.inclusionspoint)));
             formData.append("exclusionspoint", JSON.stringify(cleanPointsToArray(editData.exclusionspoint)));
             formData.append("planDetails", JSON.stringify(editData.planDetails));
+            formData.append("inclusions", JSON.stringify(editData.inclusions));
 
             editData.tripPhoto.forEach((photo) => {
                 if (photo instanceof File) {
@@ -840,7 +844,7 @@ const handleSendNotification = async () => {
                                                 <p>Update the information for this trip.</p>
                                             </DialogHeader>
 
-                                            {/* 🔥 FULL EDIT FORM — UNCHANGED */}
+                                            {/*  FULL EDIT FORM — UNCHANGED */}
                                             <form onSubmit={handleUpdateTrip} className="space-y-6">
 
                                                 {/* BASIC INFO */}
@@ -916,7 +920,7 @@ const handleSendNotification = async () => {
                                                 <div>
                                                     <Label className="font-semibold text-lg">Inclusions</Label>
                                                     <div className="flex gap-4 flex-wrap mt-2">
-                                                        {["meals", "stay", "transport", "activities"].map((inc) => (
+                                                        {["meals", "stay", "transport", "activites"].map((inc) => (
                                                             <label key={inc} className="flex items-center gap-2">
                                                                 <input
                                                                     type="checkbox"
@@ -1155,7 +1159,7 @@ const handleSendNotification = async () => {
                                 </>
                             )}
 
-                            {/* 🔔 SEND NOTIFICATION (UPCOMING + ONGOING) */}
+                            {/*  SEND NOTIFICATION (UPCOMING + ONGOING) */}
                             {(tripStatus === "upcoming" || tripStatus === "ongoing") && (
                                 <Button
                                     className="w-full bg-yellow-500 text-white hover:bg-yellow-600"
@@ -1211,7 +1215,7 @@ const handleSendNotification = async () => {
         />
       </div>
 
-      {/* Participants Selection */}
+      
     {/* Participants Selection */}
 <div>
   <label className="text-sm font-semibold mb-1 block">Select Travelers</label>
@@ -1370,17 +1374,25 @@ const handleSendNotification = async () => {
                                                 >
                                                     {/* Main row */}
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <Avatar>
-                                                                <AvatarImage src={`http://localhost:5000/${p.photo?.replace(/^\\+/, "")}`} />
-                                                                <AvatarFallback>{p.name?.charAt(0)}</AvatarFallback>
-                                                            </Avatar>
+                                                  <div className="flex items-center gap-3">
+    <Avatar>
+      {p.photo ? (
+        <AvatarImage
+          src={`http://localhost:5000/${p.photo.replace(/^\+/, "")}`}
+          alt={p.name || p.username}
+        />
+      ) : null}
 
-                                                            <div>
-                                                                <p className="font-medium capitalize">{p.name}</p>
-                                                                <p className="text-sm text-muted-foreground">{p.email}</p>
-                                                            </div>
-                                                        </div>
+      <AvatarFallback>
+        {(p.name || p.username)?.charAt(0).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+
+    <div>
+      <p className="font-medium capitalize">{p.name ?? p.username}</p>
+      <p className="text-sm text-muted-foreground">{p.email}</p>
+    </div>
+  </div>
 
                                                         {/* <ChevronDown
                                                             className={`cursor-pointer transition-transform ${openParticipant === p._id ? "rotate-180" : ""}`}
