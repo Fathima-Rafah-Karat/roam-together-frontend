@@ -387,7 +387,8 @@ export default function TripDetails() {
 
   const [participantCount, setParticipantCount] = useState(0);
   const [previewUrl, setPreviewUrl] = useState(null);
-
+  
+const isPastTrip = trip ? new Date(trip.startDate) < new Date() : false;
   // Fetch participant count when component loads or when participants change
   useEffect(() => {
     const fetchCount = async () => {
@@ -942,23 +943,31 @@ const handleGroupChat = () => {
               <CardDescription>Secure your spot now</CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+          <CardContent className="space-y-4">
               <div className="p-4 bg-primary/10 rounded-lg">
-  <div className="flex items-baseline gap-2 mb-1">
-    <span className="text-3xl font-bold">{trip.price}</span>
-    <span className="text-muted-foreground">per person</span>
-  </div>
-  <p className="text-m font-semibold text-gray-600 mt-2">
-    {participantCount} / {trip.participants} spots filled
-  </p>
-  <p className="text-sm text-red-600 mt-1">
-    {participantCount >= trip.participants
-      ? "Trip is full"
-      : `${trip.participants - participantCount} spots remaining`}
-  </p>
-</div>
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-3xl font-bold">{trip.price}</span>
+                  <span className="text-muted-foreground">per person</span>
+                </div>
+                <p className="text-m font-semibold text-gray-600 mt-2">
+                  {participantCount} / {trip.participants} spots filled
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  {participantCount >= trip.participants
+                    ? "Trip is full"
+                    : `${trip.participants - participantCount} spots remaining`}
+                </p>
+                {isPastTrip && (
+                  <p className="text-red-600 mt-1 font-semibold">Trip already started</p>
+                )}
+              </div>
 
-              <Button className="w-full" size="lg" onClick={() => setRegisterOpen(true)}>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => setRegisterOpen(true)}
+                disabled={isPastTrip || participantCount >= trip.participants} // disables button if trip started or full
+              >
                 Register Now
               </Button>
               {/* Register Now Dialog */}
