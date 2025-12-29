@@ -36,7 +36,7 @@ export default function CreateTrip() {
             meals: false,
             stay: false,
             transport: false,
-            activities: false,
+            activites: false,
         },
     });
 
@@ -122,7 +122,7 @@ export default function CreateTrip() {
                 meals: false,
                 stay: false,
                 transport: false,
-                activities: false,
+                activites: false,
             },
         });
         setStartDate("");
@@ -151,16 +151,19 @@ export default function CreateTrip() {
             formData.append("inclusionspoint", JSON.stringify(tripData.inclusionspoint));
             formData.append("exclusionspoint", JSON.stringify(tripData.exclusionspoint));
             formData.append("planDetails", JSON.stringify(tripData.planDetails));
+console.log("jhg");
 
             // Append images
             tripData.tripPhoto.forEach((file) => formData.append("tripPhoto", file));
 
-            await axios.post("http://localhost:5000/api/organizer/createtrip", formData, {
+           const response = await axios.post("http://localhost:5000/api/organizer/createtrip", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                     Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
             });
+console.log(response.data);
+console.log("hhh");
 
             toast.success("Trip created successfully!");
             resetForm();
@@ -170,6 +173,7 @@ export default function CreateTrip() {
             toast.error("Failed to create trip. Try again.");
         }
     };
+    
 
     return (
         <div className="max-w-3xl mx-auto">
@@ -325,7 +329,7 @@ export default function CreateTrip() {
                             <div className="space-y-2">
                                 <Label>Inclusions</Label>
                                 <div className="flex gap-10 flex-wrap">
-                                    {["meals", "stay", "transport", "activities"].map((key) => (
+                                    {["meals", "stay", "transport", "activites"].map((key) => (
                                         <label key={key} className="flex items-center gap-1">
                                             <input
                                                 type="checkbox"
