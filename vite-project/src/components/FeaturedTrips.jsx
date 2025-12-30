@@ -53,7 +53,7 @@ const FeaturedTrips = () => {
               <Card
                 key={trip._id}
                 className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
-                onClick={() => navigate(`/trips/${trip._id}`)} // Navigate to details
+                // onClick={() => navigate(`/trips/${trip._id}`)} // Navigate to details
               >
                 <img
                   src={imageUrl}
