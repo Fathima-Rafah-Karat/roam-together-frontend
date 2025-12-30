@@ -402,7 +402,7 @@ export default function TripBlog() {
             onClick={() => setSelectedBlog(null)}
             className="mb-4 flex items-center gap-2"
           >
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className="w-4 h-4" /> 
           </Button>
 
           {selectedBlog.photo && (
