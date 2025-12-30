@@ -568,12 +568,14 @@ export default function Dashboard() {
             icon: MapPin,
             change: "Updated",
           },
-          {
-            title: "Active Participants",
-            value: statsData.activeParticipants || 0,
-            icon: Users,
-            change: "Live",
-          },
+          // {
+          //   title: "Active Participants",
+          //   value: statsData.activeParticipants || 0,
+          //   icon: Users,
+          //   change: "Live",
+          // },
+         
+          
           {
             title: "Upcoming Events",
             value: statsData.upcomingEvents || 0,
@@ -634,7 +636,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.title}
