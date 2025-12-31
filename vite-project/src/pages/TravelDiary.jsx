@@ -259,7 +259,7 @@
 
 
 
-// src/pages/TravelDiary.jsx
+
 // src/pages/TravelDiary.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";

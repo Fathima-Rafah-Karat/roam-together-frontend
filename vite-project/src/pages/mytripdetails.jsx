@@ -37,6 +37,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import axios from "axios";
 import {  toast } from "react-hot-toast";
 
+
 export default function TripDetails() {
   const { id } = useParams();
   const navigate = useNavigate();

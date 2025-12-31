@@ -95,6 +95,7 @@ export default function Verifyorganizers() {
                     </Card>
                 ) : (
                     verifications.map((v, index) => (
+                        // it is used for movement
                         <motion.div
                             key={v._id}
                             initial={{ opacity: 0, y: 20 }}

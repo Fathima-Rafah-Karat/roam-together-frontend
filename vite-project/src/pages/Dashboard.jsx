@@ -250,12 +250,6 @@
 
 
 
-
-
-
-
-
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -457,3 +451,256 @@ export default function DiscoverTrips() {
     </div>
   );
 }
+
+
+
+
+// api for weather
+// import { useEffect, useState } from "react";
+// import axios from "axios";
+// import {
+//   Card,
+//   CardContent,
+//   CardFooter,
+//   CardHeader,
+//   CardTitle,
+//   CardDescription,
+// } from "@/components/ui/card";
+// import { Badge } from "@/components/ui/badge";
+// import { Button } from "@/components/ui/button";
+// import { MapPin, Calendar, Users, Search } from "lucide-react";
+// import { useNavigate } from "react-router-dom";
+// import { toast } from "react-hot-toast";
+
+// export default function DiscoverTrips() {
+//   const navigate = useNavigate();
+
+//   const [trips, setTrips] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [search, setSearch] = useState("");
+//   const [filteredTrips, setFilteredTrips] = useState([]);
+//   const [registeredTrips, setRegisteredTrips] = useState([]);
+
+//   // ✅ WEATHER AI STATE (ADDED)
+//   const [weatherMap, setWeatherMap] = useState({});
+
+//   const fetchTrips = async () => {
+//     try {
+//       const res = await axios.get("http://localhost:5000/api/traveler/trips");
+//       const tripsData = res.data.data || [];
+//       setTrips(tripsData);
+//       setFilteredTrips(tripsData);
+
+//       // ✅ fetch weather for each trip
+//       tripsData.forEach(fetchWeatherAI);
+//     } catch (err) {
+//       toast.error("Failed to load trips");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const fetchUserRegistrations = async () => {
+//     try {
+//       const token = localStorage.getItem("token");
+//       if (!token) return;
+
+//       const res = await axios.get(
+//         "http://localhost:5000/api/traveler/registered",
+//         { headers: { Authorization: `Bearer ${token}` } }
+//       );
+
+//       if (res.data.success) {
+//         setRegisteredTrips(res.data.data.map((trip) => trip._id));
+//       }
+//     } catch (err) {
+//       console.error(err);
+//     }
+//   };
+
+//   // 🌤 WEATHER AI FUNCTION (ADDED)
+//   const fetchWeatherAI = async (trip) => {
+//     try {
+//       const geo = await axios.get(
+//         `https://geocoding-api.open-meteo.com/v1/search?name=${trip.location}&count=1`
+//       );
+
+//       if (!geo.data.results?.length) return;
+
+//       const { latitude, longitude } = geo.data.results[0];
+
+//       const weather = await axios.get(
+//         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max&timezone=auto`
+//       );
+
+//       const temps = weather.data.daily.temperature_2m_max;
+//       const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
+
+//       let label = "Check Weather";
+//       let color = "bg-yellow-500";
+
+//       if (avgTemp >= 15 && avgTemp <= 30) {
+//         label = "Good Time visit";
+//         color = "!bg-green-600";
+//       } else if (avgTemp >= 5) {
+//         label = "Cold – Prepare";
+//         color = "!bg-blue-500";
+//       } else {
+//         label = "Not Recommended";
+//         color = "!bg-red-600";
+//       }
+
+//       setWeatherMap((prev) => ({
+//         ...prev,
+//         [trip._id]: { label, color },
+//       }));
+//     } catch (err) {
+//       console.error("Weather API error");
+//     }
+//   };
+
+//   useEffect(() => {
+//     fetchTrips();
+//     fetchUserRegistrations();
+//   }, []);
+
+//   const handleSearch = (query) => {
+//     setSearch(query);
+//     if (!query) {
+//       setFilteredTrips(trips);
+//       return;
+//     }
+
+//     setFilteredTrips(
+//       trips.filter((trip) =>
+//         trip.location.toLowerCase().includes(query.toLowerCase())
+//       )
+//     );
+//   };
+
+//   return (
+//     <div className="space-y-6">
+//       <div>
+//         <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+//           Discover Amazing Trips
+//         </h1>
+//         <p className="text-muted-foreground text-lg">
+//           Explore curated travel experiences
+//         </p>
+//       </div>
+
+//       {/* Search */}
+//       <div className="relative mb-6">
+//         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+//         <input
+//           type="text"
+//           placeholder="Search by location..."
+//           value={search}
+//           onChange={(e) => handleSearch(e.target.value)}
+//           className="w-full pl-10 p-2 border rounded-md"
+//         />
+//       </div>
+
+//       {loading && <p className="text-center py-10">Loading trips...</p>}
+
+//       {/* ✅ MISSING BLOCK RESTORED */}
+//       {!loading && filteredTrips.length === 0 && (
+//         <Card className="p-12 text-center">No trips available</Card>
+//       )}
+
+//       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+//         {filteredTrips.map((trip) => {
+//           const imageUrl =
+//             trip.tripPhoto?.length > 0
+//               ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
+//               : "/fallback.jpg";
+
+//           const isRegistered = registeredTrips.includes(trip._id);
+//           const isPastTrip = new Date(trip.endDate) < new Date();
+//           const weather = weatherMap[trip._id];
+
+//           return (
+//             <Card
+//               key={trip._id}
+//               className={`relative overflow-hidden h-96 transition-all ${
+//                 isPastTrip
+//                   ? "blur-[1.5px] opacity-70 pointer-events-none"
+//                   : "cursor-pointer hover:shadow-xl"
+//               }`}
+//             >
+//               {/* 🌤 WEATHER BADGE */}
+//               {weather && (
+//                 <div className="absolute top-3 left-3 z-20">
+//                   <Badge className={`${weather.color} text-white`}>
+//                     {weather.label}
+//                   </Badge>
+//                 </div>
+//               )}
+
+//               {/* ✅ PAST BADGE RESTORED */}
+//               {isPastTrip && (
+//                 <div className="absolute inset-0 flex items-center justify-center z-20">
+//                   <Badge className="bg-red-600 text-white text-lg px-4 py-2">
+//                     Trip Ended
+//                   </Badge>
+//                 </div>
+//               )}
+
+//               {/* ✅ REGISTERED BADGE RESTORED */}
+//               {isRegistered && !isPastTrip && (
+//                 <div className="absolute top-3 right-3 z-20">
+//                   <Badge className="!bg-green-600 text-white">
+//                     Registered
+//                   </Badge>
+//                 </div>
+//               )}
+
+//               <img
+//                 src={imageUrl}
+//                 alt={trip.title}
+//                 className="absolute inset-0 w-full h-full object-cover"
+//               />
+
+//               <div className="absolute inset-0 bg-black/30" />
+
+//               <div className="relative z-10 h-full flex flex-col justify-end p-6 text-white">
+//                 <CardTitle className="text-3xl font-bold mb-3">
+//                   {trip.title}
+//                 </CardTitle>
+
+//                 <div className="flex items-center gap-2 mb-2">
+//                   <MapPin className="h-4 w-4" />
+//                   {trip.location}
+//                 </div>
+
+//                 <div className="flex gap-6 text-sm">
+//                   <span className="flex items-center gap-1">
+//                     <Calendar className="h-4 w-4" />
+//                     {new Date(trip.startDate).toLocaleDateString("en-GB")} -{" "}
+//                     {new Date(trip.endDate).toLocaleDateString("en-GB")}
+//                   </span>
+
+//                   <span className="flex items-center gap-1">
+//                     <Users className="h-4 w-4" /> {trip.participants}
+//                   </span>
+//                 </div>
+
+//                 {!isPastTrip && !isRegistered && (
+//                   <Button
+//                     className="w-full mt-3"
+//                     onClick={(e) => {
+//                       e.stopPropagation(); // ✅ RESTORED
+//                       navigate(`/dash/trip/${trip._id}`);
+//                     }}
+//                   >
+//                     View Details
+//                   </Button>
+//                 )}
+//               </div>
+//             </Card>
+//           );
+//         })}
+//       </div>
+//     </div>
+//   );
+// }
