@@ -25,7 +25,7 @@ import Verification from "./pages/veification";
 import TripsList from "./pages/mytriplist";
 import TripListDetails from "./pages/mytriplistdetail";
 import { LayoutAdmin } from "./components/LayoutAdmin";
-import Manageuser from "./pages/manageuser";
+import Manageuser from "./pages/Manageuser";
 import Verifyorganizers from "./pages/Verifyorganizers";
 import Trips from "./pages/Trips";
 import AdminTripsDetails from "./pages/admintripsdetails";
