@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Star, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import { getAllReviews } from "@/api/reviewsApi";
+import { getImageUrl } from "@/utils/getImageUrl";
+
 const gradientClasses = [
   "bg-gradient-to-br from-primary to-secondary",
   "bg-gradient-to-br from-secondary to-accent",
@@ -25,11 +28,11 @@ const Testimonials = () => {
   useEffect(() => {
     const fetchReviews = async () => {
       try {
-        const res = await axios.get(
-          "http://localhost:5000/api/traveler/review&rating/rateandreview"
-        );
+        
+          const data = await getAllReviews();
+       
 
-        setReviews(Array.isArray(res.data?.data) ? res.data.data : []);
+        setReviews(Array.isArray(data?.data) ? data.data : []);
       } catch (error) {
         console.error("Failed to fetch reviews", error);
         setReviews([]);
@@ -62,13 +65,9 @@ const Testimonials = () => {
           {visibleReviews.map((review, index) => {
             const rating = getSafeRating(review.rating);
 
-            const profileImage = review.TravelerId?.photo
-              ? `http://localhost:5000/${review.TravelerId.photo.replace(
-                  /^\/+/,
-                  ""
-                )}`
-              : null;
-
+             const profileImage = getImageUrl(
+              review.TravelerId?.photo
+            );
             return (
               <Card
                 key={review._id || index}
