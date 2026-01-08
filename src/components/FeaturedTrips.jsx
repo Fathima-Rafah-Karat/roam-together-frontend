@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+const API_URL = import.meta.env.VITE_API_URL;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const FeaturedTrips = () => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
@@ -15,7 +18,7 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/traveler/trips");
+        const res = await axios.get(`${API_URL}/traveler/trips`);
         setTrips(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
@@ -46,7 +49,7 @@ const FeaturedTrips = () => {
           {displayedTrips.map((trip) => {
             const imageUrl =
               trip.tripPhoto?.length > 0
-                ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
+                ? `${BACKEND_URL}/${trip.tripPhoto[0].replace(/^\/+/, "")}`
                 : "/fallback.jpg";
 
             return (
