@@ -15,7 +15,7 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/traveler/trips");
+        const res = await axios.get("https://roamtogether.onrender.com/api/traveler/trips");
         setTrips(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
@@ -46,7 +46,7 @@ const FeaturedTrips = () => {
           {displayedTrips.map((trip) => {
             const imageUrl =
               trip.tripPhoto?.length > 0
-                ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
+                ? `https://roamtogether.onrender.com/${trip.tripPhoto[0].replace(/^\/+/, '')}`
                 : "/fallback.jpg";
 
             return (
