@@ -15,7 +15,7 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get("https://roamtogether.onrender.com/api/traveler/trips");
+        const res = await axios.get("http://localhost:5000/api/traveler/trips");
         setTrips(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
