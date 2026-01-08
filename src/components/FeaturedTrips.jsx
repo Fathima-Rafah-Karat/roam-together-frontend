@@ -5,9 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL = import.meta.env.VITE_API_URL;
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+import { getAllTrips } from "@/api/tripsApi";
+import { getImageUrl } from "@/utils/getImageUrl";
 
 const FeaturedTrips = () => {
   const navigate = useNavigate();
@@ -18,8 +17,9 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get(`${API_URL}/traveler/trips`);
-        setTrips(res.data.data || []);
+                const data = await getAllTrips();
+
+        setTrips(data.data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
       } finally {
@@ -46,11 +46,9 @@ const FeaturedTrips = () => {
 
         {/* Trips Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {displayedTrips.map((trip) => {
-            const imageUrl =
-              trip.tripPhoto?.length > 0
-                ? `${BACKEND_URL}/${trip.tripPhoto[0].replace(/^\/+/, "")}`
-                : "/fallback.jpg";
+                    {displayedTrips.map((trip) => {
+            const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
+
 
             return (
               <Card
