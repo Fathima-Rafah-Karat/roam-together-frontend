@@ -15,7 +15,8 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/traveler/trips");
+        // Use environment variable for backend URL
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/traveler/trips`);
         setTrips(res.data.data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
@@ -44,16 +45,16 @@ const FeaturedTrips = () => {
         {/* Trips Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {displayedTrips.map((trip) => {
+            // Use backend URL environment variable for images
             const imageUrl =
               trip.tripPhoto?.length > 0
-                ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
+                ? `${process.env.REACT_APP_API_URL}/${trip.tripPhoto[0].replace(/^\/+/, "")}`
                 : "/fallback.jpg";
 
             return (
               <Card
                 key={trip._id}
                 className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
-                // onClick={() => navigate(`/trips/${trip._id}`)} // Navigate to details
               >
                 <img
                   src={imageUrl}
@@ -116,7 +117,7 @@ const FeaturedTrips = () => {
         </div>
 
         {/* View All Trips */}
-        {!showAll && trips.length > 3 && (
+        {!showAll && trips.length > 6 && (
           <div className="text-center">
             <Button size="lg" variant="outline" onClick={() => setShowAll(true)}>
               View All Trips
