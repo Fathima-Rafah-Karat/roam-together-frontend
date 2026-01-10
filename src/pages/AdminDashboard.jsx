@@ -359,49 +359,77 @@
 
 
 
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CheckCircle, MapPin, Clock, ArrowUp, ArrowDown } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, Legend, PieChart, Pie, Cell
+  Users,
+  CheckCircle,
+  MapPin,
+  Clock,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  CartesianGrid,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
-import axios from "axios";
+
+import {
+  getDashboardCount,
+  getVerificationStats,
+  getGrowthData,
+} from "../api/admin/count";
+
+const COLORS = ["#22c55e", "#facc15", "#ef4444"];
 
 const AdminDashboard = () => {
-  const [activeView] = useState("stats");
   const [stats, setStats] = useState(null);
   const [percentages, setPercentages] = useState({});
   const [chartData, setChartData] = useState([]);
   const [growthData, setGrowthData] = useState([]);
   const [verificationPieData, setVerificationPieData] = useState([]);
-  const COLORS = ["#22c55e", "#facc15", "#ef4444"];
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // ======================
-        // 1️⃣ FETCH MAIN STATS 
-        // ======================
-        const res = await axios.get("http://localhost:5000/api/admin/count");
-        const payload = res.data.data;
+        const payload = await getDashboardCount();
 
         const total =
           (payload.totalTravelers || 0) +
           (payload.verifiedOrganizers || 0) +
           (payload.totalTrips || 0);
 
-        const calculatedPercentages = {
-          travelersPercent: total ? Math.round((payload.totalTravelers / total) * 100) : 0,
-          organizersPercent: total ? Math.round((payload.verifiedOrganizers / total) * 100) : 0,
-          tripsPercent: total ? Math.round((payload.totalTrips / total) * 100) : 0,
-          pendingPercent: payload.verifiedOrganizers
-            ? Math.round((payload.pendingVerification / payload.verifiedOrganizers) * 100)
+        // 📊 Percentages
+        setPercentages({
+          travelersPercent: total
+            ? Math.round((payload.totalTravelers / total) * 100)
             : 0,
-        };
-
-        setPercentages(calculatedPercentages);
+          organizersPercent: total
+            ? Math.round((payload.verifiedOrganizers / total) * 100)
+            : 0,
+          tripsPercent: total
+            ? Math.round((payload.totalTrips / total) * 100)
+            : 0,
+          pendingPercent: payload.verifiedOrganizers
+            ? Math.round(
+                (payload.pendingVerification /
+                  payload.verifiedOrganizers) *
+                  100
+              )
+            : 0,
+        });
 
         setStats({
           totalTravelers: payload.totalTravelers || 0,
@@ -417,187 +445,162 @@ const AdminDashboard = () => {
           { name: "Pending", count: payload.pendingVerification || 0 },
         ]);
 
-        // ================================
-        // 2️⃣ FETCH VERIFICATION PIE CHART
-        // ================================
-        const verificationRes = await axios.get(
-          "http://localhost:5000/api/admin/verification-stats"
-        );
-
-        const v = verificationRes.data.data;
-
+        // 🟢 Verification Pie Data
+        const v = await getVerificationStats();
         setVerificationPieData([
-          { name: "Approved", value: v.approved },
-          { name: "Pending", value: v.pending },
-          { name: "Rejected", value: v.rejected },
+          { name: "Approved", value: v.approved || 0 },
+          { name: "Pending", value: v.pending || 0 },
+          { name: "Rejected", value: v.rejected || 0 },
         ]);
 
-        // ======================
-        // 3️⃣ FETCH GROWTH DATA
-        // ======================
-        const growthRes = await axios.get("http://localhost:5000/api/admin/growth");
-
-        setGrowthData(growthRes.data.data || []);
-
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
+        //  Growth Chart
+        const growth = await getGrowthData();
+        setGrowthData(
+          growth.map((m) => ({
+            month: m.month,
+            users: Number(m.users) || 0,
+            trips: Number(m.trips) || 0,
+          }))
+        );
+      } catch (error) {
+        console.error("Dashboard Error:", error);
       }
     };
 
     fetchDashboardData();
   }, []);
 
-  if (!stats) return <p className="text-center mt-10">Loading dashboard...</p>;
+  if (!stats)
+    return <p className="text-center mt-10">Loading dashboard...</p>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 pb-12">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <h1 className="text-4xl font-bold text-blue-500 mb-8">
+        Admin Dashboard
+      </h1>
 
-        <h1 className="text-4xl text-blue-400 font-bold mb-2">Admin Dashboard</h1>
-        <p className="text-muted-foreground mb-8">Manage users, trips, and verification requests</p>
+      {/*  Stats Cards */}
+      <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Travelers"
+          value={stats.totalTravelers}
+          percent={percentages.travelersPercent}
+          icon={<Users className="text-blue-600" />}
+        />
 
-        {activeView === "stats" && (
-          <div className="space-y-6">
+        <StatCard
+          title="Organizers"
+          value={stats.verifiedOrganizers}
+          percent={percentages.organizersPercent}
+          icon={<CheckCircle className="text-green-600" />}
+        />
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Trips"
+          value={stats.totalTrips}
+          percent={percentages.tripsPercent}
+          icon={<MapPin className="text-purple-600" />}
+        />
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-muted-foreground">Total Travelers</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                  <div className="flex gap-3">
-                    <Users className="h-8 w-8 text-blue-600" />
-                    <div className="text-3xl font-bold">{stats.totalTravelers}</div>
-                  </div>
-                  <div className="flex items-center gap-1 text-green-500 font-semibold">
-                    <ArrowUp className="h-4 w-4" /> {percentages.travelersPercent}%
-                  </div>
-                </CardContent>
-              </Card>
+        <StatCard
+          title="Pending"
+          value={stats.pendingVerifications}
+          percent={percentages.pendingPercent}
+          down
+          icon={<Clock className="text-yellow-500" />}
+        />
+      </div>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-muted-foreground">Verified Organizers</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                  <div className="flex gap-3">
-                    <CheckCircle className="h-8 w-8 text-green-600" />
-                    <div className="text-3xl font-bold">{stats.verifiedOrganizers}</div>
-                  </div>
-                  <div className="flex items-center gap-1 text-green-500 font-semibold">
-                    <ArrowUp className="h-4 w-4" /> {percentages.organizersPercent}%
-                  </div>
-                </CardContent>
-              </Card>
+      {/*  Charts */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Bar Chart */}
+        <ChartCard title="Statistics">
+          <BarChart data={chartData}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="count" fill="#4f46e5" />
+          </BarChart>
+        </ChartCard>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-muted-foreground">Total Trips</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                  <div className="flex gap-3">
-                    <MapPin className="h-8 w-8 text-purple-600" />
-                    <div className="text-3xl font-bold">{stats.totalTrips}</div>
-                  </div>
-                  <div className="flex items-center gap-1 text-green-500 font-semibold">
-                    <ArrowUp className="h-4 w-4" /> {percentages.tripsPercent}%
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Line Chart */}
+        <ChartCard title="Platform Growth">
+          <LineChart data={growthData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="month" />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            <Line dataKey="users" stroke="#4f46e5" />
+            <Line dataKey="trips" stroke="#10b981" />
+          </LineChart>
+        </ChartCard>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-muted-foreground">Pending Verifications</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between">
-                  <div className="flex gap-3">
-                    <Clock className="h-8 w-8 text-yellow-500" />
-                    <div className="text-3xl font-bold">{stats.pendingVerifications}</div>
-                  </div>
-                  <div className="flex items-center gap-1 text-red-500 font-semibold">
-                    <ArrowDown className="h-4 w-4" /> {percentages.pendingPercent}%
-                  </div>
-                </CardContent>
-              </Card>
-
-            </div>
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-              {/* Bar Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Statistics Chart</CardTitle>
-                </CardHeader>
-                <CardContent style={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData}>
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#4f46e5" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Growth Line Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Platform Growth</CardTitle>
-                </CardHeader>
-                <CardContent style={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={growthData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="users" stroke="#4f46e5" activeDot={{ r: 8 }} />
-                      <Line type="monotone" dataKey="trips" stroke="#10b981" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Verification Pie Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Verification Status</CardTitle>
-                </CardHeader>
-                <CardContent style={{ height: 300 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={verificationPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label
-                      >
-                        {verificationPieData.map((entry, index) => (
-                          <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-            </div>
-          </div>
-        )}
-
+        {/*  Verification Pie Chart */}
+        <ChartCard title="Organizer Verification Status">
+          <PieChart>
+            <Pie
+              data={verificationPieData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={90}
+              label
+            >
+              {verificationPieData.map((_, index) => (
+                <Cell
+                  key={index}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ChartCard>
       </div>
     </div>
   );
 };
+
+/* ---------------- COMPONENTS ---------------- */
+
+const StatCard = ({ title, value, percent, icon, down }) => (
+  <Card>
+    <CardHeader className="pb-2">
+      <CardTitle className="text-sm text-muted-foreground">
+        {title}
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="flex justify-between items-center">
+      <div className="flex gap-3 items-center">
+        {icon}
+        <span className="text-3xl font-bold">{value}</span>
+      </div>
+      <div
+        className={`flex items-center gap-1 font-semibold ${
+          down ? "text-red-500" : "text-green-500"
+        }`}
+      >
+        {down ? <ArrowDown size={16} /> : <ArrowUp size={16} />}
+        {percent}%
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ChartCard = ({ title, children }) => (
+  <Card>
+    <CardHeader>
+      <CardTitle>{title}</CardTitle>
+    </CardHeader>
+    <CardContent style={{ height: 300 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        {children}
+      </ResponsiveContainer>
+    </CardContent>
+  </Card>
+);
 
 export default AdminDashboard;

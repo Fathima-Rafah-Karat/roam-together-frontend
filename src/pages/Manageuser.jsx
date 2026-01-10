@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
+// import axios from "axios"
+import { getAllUsers } from "../api/admin/manageUser";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,20 +12,21 @@ export default function Manageuser() {
   const [error, setError] = useState("")
   const [selectedUser, setSelectedUser] = useState(null)
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/auth/viewsignup")
-        setUsers(res.data.data || [])
-      } catch (err) {
-        console.log(err)
-        setError("Failed to load users")
-      } finally {
-        setLoading(false)
-      }
+useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const data = await getAllUsers();
+      setUsers(data || []);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load users");
+    } finally {
+      setLoading(false);
     }
-    fetchUsers()
-  }, [])
+  };
+
+  fetchUsers();
+}, []);
 
   if (loading) return <p className="text-center mt-10 text-lg">Loading users...</p>
   if (error) return <p className="text-center text-red-500 mt-10">{error}</p>
