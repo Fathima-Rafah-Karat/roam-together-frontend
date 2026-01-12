@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
+import { getAllTrips } from "../api/tripsApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Users, Calendar } from "lucide-react";
@@ -16,8 +17,8 @@ export default function Trips() {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/traveler/trips");
-        const tripsData = res.data.data || [];
+        const data = await getAllTrips();
+        const tripsData = data.data || [];
         setTrips(tripsData);
       } catch (err) {
         console.error("Failed to load trips", err);
@@ -38,22 +39,20 @@ export default function Trips() {
   return (
     <div className="container mx-auto px-4 pb-12">
       <h1 className="text-4xl font-bold bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent mb-2">
-        Trips
+        Trips 
       </h1>
       <p className="text-muted-foreground mb-8">Explore all available trips</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {trips.map((trip, index) => {
-          const imageUrl =
-            trip.tripPhoto?.[0]
-              ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
-              : "/placeholder.svg";
+                     const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
+
 
           return (
             <motion.div
               key={trip._id}
               className="relative rounded-xl overflow-hidden h-96 cursor-pointer shadow-lg hover:shadow-xl transition duration-300"
-              // ✅ FIXED → correct admin route
+              
               onClick={() => navigate(`/admin/Trips/${trip._id}`)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -82,7 +81,6 @@ export default function Trips() {
                     ))}
                   </div>
                 )}
-
                 <h3 className="text-2xl font-bold mb-3">{trip.title}</h3>
 
                 <div className="flex items-center mb-3">
@@ -109,7 +107,7 @@ export default function Trips() {
                   onClick={(e) => {
                     e.stopPropagation();
 
-                    // ✅ FIXED → correct admin route
+                   
                     navigate(`/admin/Trips/${trip._id}`);
                   }}
                 >

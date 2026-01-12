@@ -15,6 +15,7 @@ import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import axios from "axios";
+import { createTrip } from "../api/organizer/createTrip";
 
 export default function CreateTrip() {
     const navigate = useNavigate();
@@ -133,48 +134,49 @@ export default function CreateTrip() {
     };
 
     // Handle Form Submission
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const formData = new FormData();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-            // Append fields
-            formData.append("title", tripData.title);
-            formData.append("description", tripData.description);
-            formData.append("location", tripData.location);
-            formData.append("participants", tripData.participants);
-            formData.append("price", tripData.price);
-            formData.append("startDate", startDate);
-            formData.append("endDate", endDate);
+  try {
+    const formData = new FormData();
 
-            formData.append("inclusions", JSON.stringify(tripData.inclusions));
-            formData.append("inclusionspoint", JSON.stringify(tripData.inclusionspoint));
-            formData.append("exclusionspoint", JSON.stringify(tripData.exclusionspoint));
-            formData.append("planDetails", JSON.stringify(tripData.planDetails));
-console.log("jhg");
+    // Append fields
+    formData.append("title", tripData.title);
+    formData.append("description", tripData.description);
+    formData.append("location", tripData.location);
+    formData.append("participants", tripData.participants);
+    formData.append("price", tripData.price);
+    formData.append("startDate", startDate);
+    formData.append("endDate", endDate);
 
-            // Append images
-            tripData.tripPhoto.forEach((file) => formData.append("tripPhoto", file));
+    // Append JSON fields
+    formData.append("inclusions", JSON.stringify(tripData.inclusions));
+    formData.append("inclusionspoint", JSON.stringify(tripData.inclusionspoint));
+    formData.append("exclusionspoint", JSON.stringify(tripData.exclusionspoint));
+    formData.append("planDetails", JSON.stringify(tripData.planDetails));
 
-           const response = await axios.post("http://localhost:5000/api/organizer/createtrip", formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-console.log(response.data);
-console.log("hhh");
+    // Append images safely
+    if (tripData.tripPhoto?.length > 0) {
+      tripData.tripPhoto.forEach((file) => {
+        formData.append("tripPhoto", file);
+      });
+    }
 
-            toast.success("Trip created successfully!");
-            resetForm();
-            navigate("");
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to create trip. Try again.");
-        }
-    };
-    
+    const response = await createTrip(formData);
 
+    console.log("Trip created:", response);
+
+    toast.success("Trip created successfully!");
+    resetForm();
+    navigate("/organizer/dashboard");
+
+  } catch (error) {
+    console.error("Create trip error:", error);
+    toast.error(
+      error?.response?.data?.message || "Failed to create trip. Try again."
+    );
+  }
+};
     return (
         <div className="max-w-3xl mx-auto">
             {/* Toaster at top-center */}

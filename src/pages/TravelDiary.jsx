@@ -262,7 +262,14 @@
 
 // src/pages/TravelDiary.jsx
 import { useState, useEffect } from "react";
-import axios from "axios";
+// import axios from "axios";
+import {
+  getDiaries,
+  createDiary,
+  updateDiary,
+  deleteDiary,
+} from "../api/traveler/diaryApi";
+
 import {
   Card,
   CardContent,
@@ -302,26 +309,24 @@ export default function TravelDiary() {
   /* ======================
      FETCH DIARIES
   ====================== */
-  useEffect(() => {
-    const fetchEntries = async () => {
-      setLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "http://localhost:5000/api/traveler/diary/diaries",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+useEffect(() => {
+  const fetchEntries = async () => {
+    setLoading(true);
+    try {
+      const data = await getDiaries();
+      console.log("Fetched diaries:", data); // 👈 debug
+      setEntries(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load diary entries");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setEntries(res.data.data ?? res.data.diaries ?? []);
-      } catch {
-        toast.error("Failed to load diary entries");
-      } finally {
-        setLoading(false);
-      }
-    };
+  fetchEntries();
+}, []);
 
-    fetchEntries();
-  }, []);
 
   /* ======================
      FORM HANDLING
@@ -334,70 +339,36 @@ export default function TravelDiary() {
   /* ======================
      SAVE / UPDATE
   ====================== */
-  const handleSave = async () => {
-    const { title, date, yourstory, id } = form;
+const handleSave = async () => {
+  const { title, date, yourstory, id } = form;
 
-    if (!title || !date || !yourstory) {
-      toast.error("All fields are required");
-      return;
+  if (!title || !date || !yourstory) {
+    toast.error("All fields are required");
+    return;
+  }
+
+  try {
+    let result;
+
+    if (id) {
+      result = await updateDiary(id, { title, date, yourstory });
+      setEntries((prev) =>
+        prev.map((e) => (e._id === id ? result : e))
+      );
+      toast.success("Diary updated successfully");
+    } else {
+      result = await createDiary({ title, date, yourstory });
+      setEntries((prev) => [result, ...prev]);
+      toast.success("Diary created successfully");
     }
 
-    if (yourstory.length < 25) {
-      toast.error("Story must be at least 25 characters");
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-
-      // UPDATE
-      if (id) {
-        const res = await axios.put(
-          `http://localhost:5000/api/traveler/diary/${id}`,
-          { title, date, yourstory },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const updated = res.data.data;
-
-        if (updated) {
-          setEntries((prev) =>
-            prev.map((e) =>
-              (e._id || e.id) === (updated._id || updated.id)
-                ? updated
-                : e
-            )
-          );
-        }
-
-        toast.success("Diary updated successfully");
-      }
-
-      // CREATE
-      else {
-        const res = await axios.post(
-          "http://localhost:5000/api/traveler/diary",
-          { title, date, yourstory },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const created = res.data.data;
-
-        if (created) {
-          setEntries((prev) => [created, ...prev]);
-        }
-
-        toast.success("Diary created successfully");
-      }
-
-      // reset UI to list
-      setForm({ id: null, title: "", date: "", yourstory: "" });
-      setDialogOpen(false);
-      setSelectedEntry(null);
-    } catch {
-      toast.error("Failed to save diary");
-    }
-  };
+    setForm({ id: null, title: "", date: "", yourstory: "" });
+    setDialogOpen(false);
+    setSelectedEntry(null);
+  } catch {
+    toast.error("Failed to save diary");
+  }
+};
 
   /* ======================
      EDIT
@@ -415,25 +386,17 @@ export default function TravelDiary() {
   /* ======================
      DELETE
   ====================== */
-  const handleDeleteEntry = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
+ const handleDeleteEntry = async (id) => {
+  try {
+    await deleteDiary(id);
+    setEntries((prev) => prev.filter((e) => e._id !== id));
+    setSelectedEntry(null);
+    toast.success("Diary deleted");
+  } catch {
+    toast.error("Failed to delete diary");
+  }
+};
 
-      await axios.delete(
-        `http://localhost:5000/api/traveler/diary/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setEntries((prev) =>
-        prev.filter((e) => (e._id || e.id) !== id)
-      );
-      setSelectedEntry(null);
-
-      toast.success("Diary deleted");
-    } catch {
-      toast.error("Failed to delete diary");
-    }
-  };
 
   /* ======================
      UI
@@ -507,7 +470,7 @@ export default function TravelDiary() {
         {selectedEntry ? (
           <Card className="p-6">
             <Button variant="ghost" onClick={() => setSelectedEntry(null)}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              <ArrowLeft className="mr-2 h-4 w-4" /> 
             </Button>
 
             <h2 className="text-2xl font-bold mt-2">

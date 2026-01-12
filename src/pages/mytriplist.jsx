@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import axios from "axios";
-
+// import axios from "axios";
+import { getOrganizerTrips } from "../api/organizer/viewTrip";
+import { getImageUrl } from "../utils/getImageUrl";
 import {
   Card,
   CardContent,
@@ -21,28 +22,21 @@ export default function TripsList() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      toast.error("Please login first");
-      return;
-    }
-
-    axios
-      .get("http://localhost:5000/api/organizer/viewtrip", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setTrips(res.data.data || []);
-      })
-      .catch((err) => {
+ useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const data = await getOrganizerTrips();
+        setTrips(data);
+      } catch (err) {
         console.error(err);
         toast.error("Failed to load trips");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchTrips();
+  }, []);
   if (loading) {
     return (
       <p className="text-center text-muted-foreground text-xl py-10">
@@ -59,10 +53,7 @@ export default function TripsList() {
 
   const renderTrips = (tripList) =>
     tripList.map((trip, index) => {
-      const imageUrl =
-        trip.tripPhoto && trip.tripPhoto.length > 0
-          ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
-          : "/fallback.jpg";
+     const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
 
       const start = new Date(trip.startDate);
       const end = new Date(trip.endDate);

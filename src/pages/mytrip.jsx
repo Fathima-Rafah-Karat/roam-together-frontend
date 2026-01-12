@@ -284,7 +284,14 @@
 
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import {
+  getMyTrips,
+  getTripReviews,
+  createTripReview,
+} from "../api/traveler/myTripApi";
+import { getImageUrl } from "../utils/getImageUrl";
+
 import { useNavigate } from "react-router-dom";
 
 import { Card, CardTitle } from "@/components/ui/card";
@@ -321,35 +328,31 @@ export default function MyTrips() {
   const token = localStorage.getItem("token");
 
   const fetchMyTrips = async () => {
-    try {
-      const res = await axios.get(
-        "http://localhost:5000/api/traveler/mytrip/view",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setUpcomingTrips(res.data.upcoming || []);
-      setPastTrips(res.data.past || []);
-    } catch (err) {
-      toast.error("Failed to load trips");
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const { upcoming, past } = await getMyTrips();
+    setUpcomingTrips(upcoming);
+    setPastTrips(past);
+  } catch {
+    toast.error("Failed to load trips");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const fetchTripReviews = async (tripId) => {
-    try {
-      const res = await axios.get(
-        "http://localhost:5000/api/traveler/review&rating/rateandreview",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setTripReviews(
-        res.data.data.filter(
-          (r) => r.tripId.toString() === tripId.toString()
-        )
-      );
-    } catch {
-      toast.error("Failed to load reviews");
-    }
-  };
+useEffect(() => {
+  fetchMyTrips();
+}, []);
+
+
+const fetchTripReviews = async (tripId) => {
+  try {
+    const reviews = await getTripReviews(tripId);
+    setTripReviews(reviews);
+  } catch {
+    toast.error("Failed to load reviews");
+  }
+};
+
 
   useEffect(() => {
     fetchMyTrips();
@@ -361,23 +364,30 @@ export default function MyTrips() {
     fetchTripReviews(trip._id);
   };
 
-  const handleReviewSubmit = async () => {
-    if (!reviewText) return toast.error("Enter review text");
-    try {
-      await axios.post(
-        "http://localhost:5000/api/traveler/review&rating",
-        { tripId: selectedTrip._id, rating, review: reviewText },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success("Review submitted");
-      setReviewText("");
-      setRating(5);
-      fetchTripReviews(selectedTrip._id);
-      setShowReviewForm(false);
-    } catch {
-      toast.error("Review submission failed");
-    }
-  };
+const handleReviewSubmit = async () => {
+  if (!reviewText.trim()) {
+    toast.error("Enter review text");
+    return;
+  }
+
+  try {
+    await createTripReview({
+      tripId: selectedTrip._id,
+      rating,
+      review: reviewText,
+    });
+
+    toast.success("Review submitted");
+    setReviewText("");
+    setRating(5);
+    setShowReviewForm(false);
+
+    fetchTripReviews(selectedTrip._id);
+  } catch {
+    toast.error("Review submission failed");
+  }
+};
+
 
   const formatDate = (date) =>
     new Date(date).toLocaleDateString("en-IN", {
@@ -446,12 +456,8 @@ export default function MyTrips() {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {tripReviews.map((rev, index) => {
-              const photo = rev.TravelerId?.photo
-                ? `http://localhost:5000/${rev.TravelerId.photo.replace(
-                    /^\/+/,
-                    ""
-                  )}`
-                : null;
+             const photo = getImageUrl(rev.TravelerId?.photo);
+
 
               return (
                 <Card key={rev._id} className="p-6 hover:shadow-lg">
@@ -508,7 +514,7 @@ export default function MyTrips() {
   return (
     <div className="space-y-6">
       <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-        My Trips
+        My Trips  
       </h1>
       <p className="text-muted-foreground text-lg">Manage your booked travel experiences</p>
 
@@ -552,7 +558,7 @@ function TripCard({ trip, formatDate, navigate, reviewBtn, openReviewPage }) {
     <Card className="mb-4 overflow-hidden shadow-lg">
       <div className="flex flex-col md:flex-row">
         <img
-          src={`http://localhost:5000/${trip.tripPhoto?.[0]}`}
+          src={getImageUrl(trip.tripPhoto?.[0])}
           className="w-full md:w-72 h-52 object-cover"
         />
 

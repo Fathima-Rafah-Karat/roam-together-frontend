@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import {
+  getNotifications,
+  getNotificationById,
+  markNotificationAsRead,
+} from "../api/traveler/notificationApi";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -55,48 +60,35 @@ export default function Notifications() {
   
 
   const fetchNotifications = async () => {
-    try {
-      if (!token) return console.error("No token found");
-
-      const response = await axios.get(
-        "http://localhost:5000/api/traveler/notification/notify",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      setNotifications(response.data.data || []);
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    const res = await getNotifications();
+    setNotifications(res.data || []);
+  } catch (err) {
+    console.error("Error fetching notifications:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Marks a notification as read and updates state instantly
-  const fetchAndMarkNotification = async (id) => {
-    try {
-      if (!token) return console.error("No token found");
+ const fetchAndMarkNotification = async (id) => {
+  try {
+    // Optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n._id === id ? { ...n, isRead: true } : n
+      )
+    );
 
-      // Optimistic update
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
-      );
+    const res = await getNotificationById(id);
+    setSelectedNotification(res.data);
 
-      const response = await axios.get(
-        `http://localhost:5000/api/traveler/notification/notify/${id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    await markNotificationAsRead(id);
+  } catch (err) {
+    console.error("Error fetching notification:", err);
+  }
+};
 
-      setSelectedNotification(response.data.data);
-
-      await axios.put(
-        `http://localhost:5000/api/traveler/notification/mark/${id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-    } catch (err) {
-      console.error("Error fetching notification:", err);
-    }
-  };
 console.log("TRAVELER TOKEN:", token);
   useEffect(() => {
     fetchNotifications();

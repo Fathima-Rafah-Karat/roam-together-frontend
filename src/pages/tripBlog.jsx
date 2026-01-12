@@ -214,7 +214,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import axios from "axios";
+// import axios from "axios";
+import { createTripBlog, getTripBlogs } from "../api/traveler/blogApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import { toast } from "react-hot-toast";
 
 export default function TripBlog() {
@@ -246,40 +248,38 @@ export default function TripBlog() {
     setForm((prev) => ({ ...prev, photo: file }));
   };
 
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.content.trim() || !form.photo) {
-      toast.error("Please fill Title, Content and Photo");
-      return;
-    }
+const handleSave = async () => {
+  if (!form.title.trim() || !form.content.trim() || !form.photo) {
+    toast.error("Please fill Title, Content and Photo");
+    return;
+  }
 
-    setLoadingCreate(true);
+  setLoadingCreate(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("title", form.title);
-      formData.append("content", form.content);
-      formData.append("photo", form.photo);
+  try {
+    const formData = new FormData();
+    formData.append("title", form.title);
+    formData.append("content", form.content);
+    formData.append("photo", form.photo);
 
-      const res = await axios.post(
-        "http://localhost:5000/api/traveler/blog",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+    const res = await createTripBlog(formData);
 
-      const created = res.data?.data;
-      setTripBlogs((prev) => [created, ...prev]);
+    const created = res.data;
+    setTripBlogs((prev) => [created, ...prev]);
 
-      setForm({ title: "", content: "", photo: null });
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-      setDialogOpen(false);
-      toast.success("Blog created successfully!");
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Create failed");
-    } finally {
-      setLoadingCreate(false);
-    }
-  };
+    setForm({ title: "", content: "", photo: null });
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    setDialogOpen(false);
+
+    toast.success("Blog created successfully!");
+  } catch (err) {
+    console.error(err);
+    toast.error(err?.response?.data?.error || "Create failed");
+  } finally {
+    setLoadingCreate(false);
+  }
+};
 
   const handleLike = (id) => {
     setLikedPosts((prev) => {
@@ -314,20 +314,23 @@ export default function TripBlog() {
     };
   })();
 
-  useEffect(() => {
-    const fetchBlogs = async () => {
-      setLoadingFetch(true);
-      try {
-        const res = await axios.get("http://localhost:5000/api/traveler/blog/view");
-        setTripBlogs(res.data.data);
-      } catch {
-        toast.error("Failed to fetch blogs");
-      } finally {
-        setLoadingFetch(false);
-      }
-    };
-    fetchBlogs();
-  }, []);
+useEffect(() => {
+  const fetchBlogs = async () => {
+    setLoadingFetch(true);
+    try {
+      const res = await getTripBlogs();
+      setTripBlogs(res.data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch blogs");
+    } finally {
+      setLoadingFetch(false);
+    }
+  };
+
+  fetchBlogs();
+}, []);
+
 
   return (
     <div className="space-y-6">
@@ -411,7 +414,7 @@ export default function TripBlog() {
               className="relative cursor-pointer"
             >
               <img
-                src={`http://localhost:5000/${selectedBlog.photo}`}
+               src={getImageUrl(selectedBlog.photo)}
                 className="w-full max-h-[400px] object-cover rounded-lg"
               />
 
@@ -444,7 +447,8 @@ export default function TripBlog() {
           {tripBlogs.map((post) => {
             const id = post._id;
             const isLiked = likedPosts[id];
-            const photoSrc = post.photo ? `http://localhost:5000/${post.photo.replace(/^\//, "")}` : null;
+            const photoSrc = getImageUrl(post.photo);
+
 
             return (
               <Card key={id} className="overflow-hidden cursor-pointer" onClick={() => setSelectedBlog(post)}>

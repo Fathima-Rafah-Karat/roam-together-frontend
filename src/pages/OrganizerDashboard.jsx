@@ -506,8 +506,9 @@ import { MapPin, Users, Calendar, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
+// import axios from "axios";
+import { getOrganizerDashboardCount } from "../api/organizer/countApi";
+import { getOrganizerTrips } from "../api/organizer/viewTrip";
 export default function Dashboard() {
   const navigate = useNavigate();
 
@@ -536,86 +537,46 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
 
-        if (!token) {
-          setError("Unauthorized. Please login.");
-          setLoading(false);
-          return;
-        }
+      const statsData = await getOrganizerDashboardCount();
 
-        const headers = {
-          Authorization: `Bearer ${token}`,
-        };
+      setStats([
+        {
+          title: "Total Trips",
+          value: statsData.totalTrips ?? 0,
+          icon: MapPin,
+          change: "Updated",
+        },
+        {
+          title: "Upcoming Events",
+          value: statsData.upcomingEvents ?? 0,
+          icon: Calendar,
+          change: "Scheduled",
+        },
+        {
+          title: "Completion Rate",
+          value: `${statsData.completionRate ?? 0}%`,
+          icon: TrendingUp,
+          change: "Overall",
+        },
+      ]);
 
-        /* =====================
-           FETCH STATS
-        ====================== */
-        const statsRes = await axios.get(
-          "http://localhost:5000/api/organizer/count",
-          { headers }
-        );
+      const trips = await getOrganizerTrips();
+      setRecentTrips(trips.slice(0, 5));
+    } catch (error) {
+      console.error("Dashboard error:", error);
+      setError("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        // supports both {data:{}} and direct {}
-        const statsData = statsRes.data?.data || statsRes.data;
+  fetchDashboardData();
+}, []);
 
-        setStats([
-          {
-            title: "Total Trips",
-            value: statsData.totalTrips || 0,
-            icon: MapPin,
-            change: "Updated",
-          },
-          // {
-          //   title: "Active Participants",
-          //   value: statsData.activeParticipants || 0,
-          //   icon: Users,
-          //   change: "Live",
-          // },
-         
-          
-          {
-            title: "Upcoming Events",
-            value: statsData.upcomingEvents || 0,
-            icon: Calendar,
-            change: "Scheduled",
-          },
-          {
-            title: "Completion Rate",
-            value: `${statsData.completionRate || 0}%`,
-            icon: TrendingUp,
-            change: "Overall",
-          },
-        ]);
-
-        /* =====================
-           FETCH RECENT TRIPS
-        ====================== */
-        const tripsRes = await axios.get(
-          "http://localhost:5000/api/organizer/viewtrip",
-          { headers }
-        );
-
-        // ✅ FIX: always extract array safely
-        const tripsArray = Array.isArray(tripsRes.data)
-          ? tripsRes.data
-          : tripsRes.data?.data || [];
-
-        // latest 5 trips
-        setRecentTrips(tripsArray.slice(0, 5));
-
-        setLoading(false);
-      } catch (err) {
-        console.error("Dashboard error:", err);
-        setError("Failed to load dashboard data");
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, []);
 
   if (loading) {
     return <div className="text-center mt-10">Loading dashboard...</div>;
@@ -681,7 +642,7 @@ export default function Dashboard() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="flex justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted cursor-pointer"
-                    onClick={() => navigate(`/trips/${trip._id}`)}
+                    // onClick={() => navigate(`/trips/${trip._id}`)}
                   >
                     <div>
                       <h3 className="font-semibold">{trip.title}</h3>

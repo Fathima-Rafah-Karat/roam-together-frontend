@@ -10,7 +10,13 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import axios from "axios";
+// import axios from "axios";
+import {
+  getEmergencyContacts,
+  addEmergencyContact,
+  deleteEmergencyContact,
+} from "../api/traveler/emergencyapi";
+
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -24,22 +30,22 @@ const Emergency = () => {
 
   const token = localStorage.getItem("token");
 
-  const axiosInstance = axios.create({
-    baseURL: "http://localhost:5000/api/traveler",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  // const axiosInstance = axios.create({
+  //   baseURL: "http://localhost:5000/api/traveler",
+  //   headers: {
+  //     Authorization: `Bearer ${token}`,
+  //   },
+  // });
 
-  const fetchContacts = async () => {
-    try {
-      const res = await axiosInstance.get("/viewemergency");
-      setContacts(res.data.data || []);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch contacts");
-    }
-  };
+const fetchContacts = async () => {
+  try {
+    const res = await getEmergencyContacts();
+    setContacts(res.data || []);
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to fetch contacts");
+  }
+};
 
   useEffect(() => {
     fetchContacts();
@@ -50,34 +56,36 @@ const Emergency = () => {
     setNewContact({ ...newContact, [name]: value });
   };
 
-  const handleAddContact = async () => {
-    if (!newContact.name || !newContact.phone || !newContact.relation) {
-      toast.error("Please fill all fields!");
-      return;
-    }
+ const handleAddContact = async () => {
+  if (!newContact.name || !newContact.phone || !newContact.relation) {
+    toast.error("Please fill all fields!");
+    return;
+  }
 
-    try {
-      await axiosInstance.post("/emergency", newContact);
-      toast.success("Emergency contact added successfully!");
-      setNewContact({ name: "", phone: "", relation: "" });
-      setDialogOpen(false);
-      fetchContacts();
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to add contact");
-    }
-  };
+  try {
+    await addEmergencyContact(newContact);
+    toast.success("Emergency contact added successfully!");
+    setNewContact({ name: "", phone: "", relation: "" });
+    setDialogOpen(false);
+    fetchContacts();
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to add contact");
+  }
+};
+
 
   const handleDeleteContact = async (id) => {
-    try {
-      await axiosInstance.delete(`/emergency/${id}`);
-      toast.success("Contact deleted successfully!");
-      fetchContacts();
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to delete contact");
-    }
-  };
+  try {
+    await deleteEmergencyContact(id);
+    toast.success("Contact deleted successfully!");
+    fetchContacts();
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to delete contact");
+  }
+};
+
 
   // Disable Add Contact if user already added one
   const isRegistrationClosed = contacts.length >= 3;

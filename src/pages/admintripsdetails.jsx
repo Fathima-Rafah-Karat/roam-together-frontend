@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import axios from "axios";
+import { getTripById } from "../api/tripsApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import { Toaster, toast } from "react-hot-toast";
 
 
@@ -63,48 +65,47 @@ export default function AdminTripsDetails() {
     const [previewUrl, setPreviewUrl] = useState(null);
 
     // Fetch participant count when component loads or when participants change
-    useEffect(() => {
-        const fetchCount = async () => {
-            try {
-                if (!trip?._id) return;
+    // useEffect(() => {
+    //     const fetchCount = async () => {
+    //         try {
+    //             if (!trip?._id) return;
 
-                const res = await axios.get(
-                    `http://localhost:5000/api/traveler/participants/${trip._id}`
-                );
+    //             const res = await axios.get(
+    //                 `http://localhost:5000/api/traveler/participants/${trip._id}`
+    //             );
 
-                if (res.data.success) {
-                    setParticipantCount(res.data.count);
-                }
-            } catch (err) {
-                console.error("Error fetching participant count:", err);
-            }
-        };
+    //             if (res.data.success) {
+    //                 setParticipantCount(res.data.count);
+    //             }
+    //         } catch (err) {
+    //             console.error("Error fetching participant count:", err);
+    //         }
+    //     };
 
-        fetchCount();
-    }, [trip]);
+    //     fetchCount();
+    // }, [trip]);
 
 
     // Fetch trip details
-    useEffect(() => {
-        const fetchTrip = async () => {
-            try {
-                const res = await axios.get(`http://localhost:5000/api/traveler/${id}`);
-                setTrip(res.data.data || null);
-                console.log(res.data);
+ useEffect(() => {
+  const fetchTrip = async () => {
+    try {
+      setLoading(true);
 
-            } catch (err) {
-                console.error(err);
-                toast({
-                    title: "Error",
-                    description: "Failed to fetch trip details",
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTrip();
-    }, [id, toast]);
+      const data = await getTripById(id);
+      setTrip(data || null);
 
+      console.log(data);
+    } catch (error) {
+      console.error("Failed to fetch trip:", error);
+      toast.error("Failed to fetch trip details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (id) fetchTrip();
+}, [id]);
     // Auto-scroll images every 2 seconds (keeps original behavior)
     useEffect(() => {
         if (!trip?.tripPhoto?.length) return;
@@ -127,49 +128,49 @@ export default function AdminTripsDetails() {
     }, [currentSlide, trip]);
 
     // Keyboard navigation for lightbox
-    useEffect(() => {
-        if (!lightboxOpen) return;
+    // useEffect(() => {
+    //     if (!lightboxOpen) return;
 
-        const onKey = (e) => {
-            if (e.key === "Escape") setLightboxOpen(false);
-            if (e.key === "ArrowLeft") prevLightbox();
-            if (e.key === "ArrowRight") nextLightbox();
-        };
+    //     const onKey = (e) => {
+    //         if (e.key === "Escape") setLightboxOpen(false);
+    //         if (e.key === "ArrowLeft") prevLightbox();
+    //         if (e.key === "ArrowRight") nextLightbox();
+    //     };
 
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lightboxOpen, trip, lightboxIndex]);
+    //     window.addEventListener("keydown", onKey);
+    //     return () => window.removeEventListener("keydown", onKey);
+    //     // eslint-disable-next-line react-hooks/exhaustive-deps
+    // }, [lightboxOpen, trip, lightboxIndex]);
 
-    const handleChat = (phone) => {
-        window.open(`https://wa.me/${phone}`, "_blank");
-    };
+    // const handleChat = (phone) => {
+    //     window.open(`https://wa.me/${phone}`, "_blank");
+    // };
 
-    const toggleDay = (day) => {
-        setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
-    };
+    // const toggleDay = (day) => {
+    //     setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
+    // };
 
 
 
-    useEffect(() => {
-        if (participantsOpen && trip?._id) {
-            fetchParticipants();
-        }
-    }, [participantsOpen, trip?._id]);
+    // useEffect(() => {
+    //     if (participantsOpen && trip?._id) {
+    //         fetchParticipants();
+    //     }
+    // }, [participantsOpen, trip?._id]);
 
-    const fetchParticipants = async () => {
-        try {
-            const res = await axios.get(
-                `http://localhost:5000/api/traveler/participants/${trip._id}`
-            );
+    // const fetchParticipants = async () => {
+    //     try {
+    //         const res = await axios.get(
+    //             `http://localhost:5000/api/traveler/participants/${trip._id}`
+    //         );
 
-            if (res.data.success) {
-                setParticipants(res.data.data); // Store all users
-            }
-        } catch (error) {
-            console.error("Error loading participants:", error);
-        }
-    };
+    //         if (res.data.success) {
+    //             setParticipants(res.data.data); // Store all users
+    //         }
+    //     } catch (error) {
+    //         console.error("Error loading participants:", error);
+    //     }
+    // };
 
 
 
@@ -229,7 +230,6 @@ export default function AdminTripsDetails() {
             >
                 <ArrowLeft className="h-4 w-4" />
             </Button>
-
             <div className="w-full">
                 {/* Left Section */}
                 <div className="lg:col-span-2 space-y-6">
@@ -244,7 +244,7 @@ export default function AdminTripsDetails() {
                                     trip.tripPhoto.map((photo, index) => (
                                         <img
                                             key={index}
-                                            src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                                             src={getImageUrl(photo)}
                                             alt={`${trip.title} ${index + 1}`}
                                             className="h-[500px] w-full flex-shrink-0 object-cover rounded-lg snap-center"
                                         />
@@ -273,7 +273,7 @@ export default function AdminTripsDetails() {
                                             className="relative h-20 w-28 cursor-pointer rounded-lg overflow-hidden"
                                         >
                                             <img
-                                                src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                                                src={getImageUrl(photo)}
                                                 className="h-full w-full object-cover opacity-70"
                                                 alt={`thumb-${index}`}
                                             />
@@ -289,7 +289,7 @@ export default function AdminTripsDetails() {
                                     <img
                                         key={index}
                                         onClick={() => openLightboxAt(index)}
-                                        src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                                        src={getImageUrl(photo)}
                                         className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition-all 
                       ${currentSlide === index ? "ring-4 ring-primary" : "opacity-70"}`}
                                         alt={`thumb-${index}`}
@@ -332,7 +332,7 @@ export default function AdminTripsDetails() {
                                     {/* IMAGE */}
                                     {trip?.tripPhoto?.length ? (
                                         <img
-                                            src={`http://localhost:5000/${trip.tripPhoto[lightboxIndex].replace(/^\\+/, "")}`}
+                                            src={getImageUrl(trip.tripPhoto[lightboxIndex])}
                                             alt={`lightbox-${lightboxIndex}`}
                                             className="max-h-full max-w-full object-contain select-none"
                                             draggable="false"

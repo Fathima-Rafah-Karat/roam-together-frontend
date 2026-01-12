@@ -19,16 +19,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-    DialogTrigger
+ DialogTrigger
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import axios from "axios";
+// import axios from "axios";
+import { getTripById } from "../api/tripsApi";
+import { getAllReview } from "../api/organizer/reviewApi";
+import { sendNotification } from "../api/organizer/notificationApi";
+import { getParticipantCount } from "../api/participantsApi";
+import { getParticipants } from "../api/participantsApi";
+import { deleteTrip } from "../api/organizer/deleteTripApi";
+import { updateTrip } from "../api/organizer/updateTripApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import toast from "react-hot-toast";
 
 export default function TripListDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
-console.log("organizer trip detail");
+    console.log("organizer trip detail");
 
     const [trip, setTrip] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -54,17 +62,16 @@ console.log("organizer trip detail");
     const [notifyMessage, setNotifyMessage] = useState("");
     const [notifyType, setNotifyType] = useState("info");
     const [sending, setSending] = useState(false);
-    // const [participant, setParticipant] = useState([]); // all participants
     const [selectedTravelers, setSelectedTravelers] = useState([]); // selected for notification
-useEffect(() => {
-  if (trip && Array.isArray(trip.participants)) {
-    setParticipants(trip.participants); // store all participants
-    setSelectedTravelers(trip.participants.map(p => p._id)); // select all by default
-  } else {
-    setParticipants([]);
-    setSelectedTravelers([]);
-  }
-}, [trip]);
+    useEffect(() => {
+        if (trip && Array.isArray(trip.participants)) {
+            setParticipants(trip.participants); // store all participants
+            setSelectedTravelers(trip.participants.map(p => p._id)); // select all by default
+        } else {
+            setParticipants([]);
+            setSelectedTravelers([]);
+        }
+    }, [trip]);
 
     // Edit dialog state
     const [editOpen, setEditOpen] = useState(false);
@@ -101,82 +108,47 @@ useEffect(() => {
 
     const tripStatus = getTripStatus();
 
-
     // Fetch trip
-    useEffect(() => {
-        const fetchTrip = async () => {
-            try {
-                setLoading(true);
-                const res = await axios.get(`http://localhost:5000/api/traveler/${id}`);
-                setTrip(res.data.data || null);
-            } catch (err) {
-                console.error(err);
-                toast.error("Failed to fetch trip details");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTrip();
-    }, [id]);
+ useEffect(() => {
+  const fetchTrip = async () => {
+    try {
+      setLoading(true);
+
+      const data = await getTripById(id);
+      setTrip(data || null);
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch trip details");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchTrip();
+}, [id]);
 
 
+const handleGetReview = async () => {
+  try {
+    const reviews = await getAllReview(); 
 
-    // const fetchEmergencyContacts = async (travelerId) => {
-    //     try {
-    //         const token = localStorage.getItem("token"); // or "organizerToken"
+    const review = reviews.find(
+      (r) => String(r.tripId) === String(trip._id)
+    );
 
-    //         const res = await axios.get(
-    //             `http://localhost:5000/api/organizer/viewemergency?travelerId=${travelerId}`,
-    //             {
-    //                 headers: {
-    //                     Authorization: `Bearer ${token}`,
-    //                 },
-    //             }
-    //         );
+    if (!review) {
+      toast.error("No review found for this trip");
+      return;
+    }
 
-    //         setEmergencyContacts((prev) => ({
-    //             ...prev,
-    //             [travelerId]: res.data.contacts || [],
-    //         }));
-    //     } catch (err) {
-    //         console.error("Emergency contact fetch error", err);
-    //     }
-    // };
-
-
-
-    const handleGetReview = async () => {
-        try {
-            const res = await axios.get(
-                "http://localhost:5000/api/traveler/review&rating/rateandreview",
-                { withCredentials: true }
-            );
-
-            console.log("API Response:", res.data);
-
-            //  STEP 1: Always read from res.data.data
-            const reviews = res.data?.data || [];
-
-            //  STEP 2: Filter review for THIS trip
-            const review = reviews.find(
-                (r) => String(r.tripId) === String(trip._id)
-            );
-
-            if (!review) {
-                toast.error("No review found for this trip");
-                return;
-            }
-
-            // STEP 3: Set state & open dialog
-            setTripReview(review);
-            setReviewOpen(true);
-
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to fetch review");
-        }
-    };
-
+    setTripReview(review);
+    setReviewOpen(true);
+  } catch (error) {
+    console.error(error);
+    toast.error("Failed to fetch review");
+  }
+};
 
 const handleSendNotification = async () => {
   if (!notifyMessage.trim() || selectedTravelers.length === 0) {
@@ -189,25 +161,19 @@ const handleSendNotification = async () => {
 
     const token = localStorage.getItem("token");
 
+    // Send notifications sequentially or in parallel
     await Promise.all(
-      selectedTravelers.map((authId) =>
-        axios.post(
-          "http://localhost:5000/api/organizer/notification",
-          {
-            traveler: authId,        // ✅ authId of that participant
-            message: notifyMessage,
-            type: notifyType,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
+      selectedTravelers.map((travelerId) =>
+        sendNotification({
+          traveler: travelerId,
+          message: notifyMessage,
+          type: notifyType,
+          headers: { Authorization: `Bearer ${token}` }, // optional: can also handle in axios instance
+        })
       )
     );
-    toast.success("Notification sent successfully");
 
+    toast.success("Notification sent successfully");
     setNotifyMessage("");
     setNotifyType("info");
     setNotifyOpen(false);
@@ -222,23 +188,25 @@ const handleSendNotification = async () => {
 
 
 
-    // Fetch participant count
-    useEffect(() => {
-        const fetchCount = async () => {
-            try {
-                if (!trip?._id) return;
-                const res = await axios.get(`http://localhost:5000/api/traveler/participants/${trip._id}`);
-                if (res.data.success) {
-                    setParticipantCount(res.data.count);
-                }
-            } catch (err) {
-                console.error("Error fetching participant count:", err);
-            }
-        };
-        fetchCount();
-    }, [trip]);
+  useEffect(() => {
+  const fetchCount = async () => {
+    try {
+      if (!trip?._id) return;
 
-    // Auto slide
+      const res = await getParticipantCount(trip._id);
+
+      if (res.success) {
+        setParticipantCount(res.count);
+      }
+    } catch (err) {
+      console.error("Error fetching participant count:", err);
+    }
+  };
+
+  fetchCount();
+}, [trip]);
+
+
     useEffect(() => {
         if (trip?.tripPhoto?.length) {
             const interval = setInterval(() => {
@@ -261,20 +229,22 @@ const handleSendNotification = async () => {
         setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
     };
 
-    const fetchParticipants = async () => {
-        try {
-            const res = await axios.get(`http://localhost:5000/api/traveler/participants/${trip._id}`);
-            if (res.data.success) {
-                setParticipants(res.data.data);
-            }
-            console.log(res.data.data);
-            console.log("test1");
-            
-        } catch (error) {
-            console.error("Error loading participants:", error);
-        }
-    };
+  const fetchParticipants = async () => {
+  try {
+    if (!trip?._id) return;
 
+    const res = await getParticipants(trip._id);
+
+    if (res.success) {
+      setParticipants(res.data); // array of participants
+      console.log(res.data);
+    } else {
+      console.warn("Failed to load participants");
+    }
+  } catch (error) {
+    console.error("Error loading participants:", error);
+  }
+};
     useEffect(() => {
         if (participantsOpen && trip?._id) {
             fetchParticipants();
@@ -298,9 +268,6 @@ const handleSendNotification = async () => {
         setLightboxIndex((prev) => (prev === trip.tripPhoto.length - 1 ? 0 : prev + 1));
     };
 
-    const handleChat = (phone) => {
-        if (phone) window.open(`https://wa.me/${phone}`, "_blank");
-    };
 
     if (loading)
         return <p className="text-center py-10 text-muted-foreground">Loading trip...</p>;
@@ -325,10 +292,9 @@ const handleSendNotification = async () => {
         }
     }
 
-
-     const handleGroupChat = () => {
-  navigate(`/trip/${id}/chat`);
-};
+    const handleGroupChat = () => {
+        navigate(`/trip/${id}/chat`);
+    };
     const handleDeleteTrip = async () => {
         try {
             const confirm = await new Promise((resolve) => {
@@ -368,12 +334,9 @@ const handleSendNotification = async () => {
                 return;
             }
 
-            const res = await axios.delete(
-                `http://localhost:5000/api/organizer/deletetrip/${trip._id}`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            const res = await deleteTrip(trip._id, token);
 
-            if (res.data.success) {
+            if (res.success) {
                 toast.success(res.data.message || "trip delete successfully");
                 navigate(-1);
             }
@@ -448,29 +411,20 @@ const handleSendNotification = async () => {
                 }
             });
 
-            const res = await axios.put(
-                `http://localhost:5000/api/organizer/trip/${trip._id}`,
-                formData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
+            const res = await updateTrip(trip._id, formData, token);
 
-            if (res.data?.success) {
-                toast.success("Trip updated successfully");
-                setTrip(res.data.data || { ...trip, ...editData });
-                setEditOpen(false);
-            } else {
-                toast.error(res.data?.message || "Failed to update trip");
-            }
-        } catch (err) {
-            console.error("Update error:", err);
-            toast.error(err.response?.data?.message || "Failed to update trip");
-        }
-    };
+    if (res?.success) {
+      toast.success("Trip updated successfully");
+      setTrip(res.data || { ...trip, ...editData });
+      setEditOpen(false);
+    } else {
+      toast.error(res?.message || "Failed to update trip");
+    }
+  } catch (err) {
+    console.error("Update error:", err);
+    toast.error(err.response?.data?.message || "Failed to update trip");
+  }
+};
 
     return (
         <div className="space-y-6">
@@ -490,7 +444,7 @@ const handleSendNotification = async () => {
                                     trip.tripPhoto.map((photo, index) => (
                                         <img
                                             key={index}
-                                            src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                                             src={getImageUrl(photo)}
                                             alt={`${trip.title} ${index + 1}`}
                                             className="h-96 w-full flex-shrink-0 object-cover rounded-lg snap-center" />
                                     ))
@@ -516,7 +470,7 @@ const handleSendNotification = async () => {
                                             className="relative h-20 w-28 cursor-pointer rounded-lg overflow-hidden"
                                         >
                                             <img
-                                                src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                                                  src={getImageUrl(photo)}
                                                 className="h-full w-full object-cover opacity-70"
                                                 alt={`thumb-${index}`}
                                             />
@@ -531,7 +485,7 @@ const handleSendNotification = async () => {
                                     <img
                                         key={index}
                                         onClick={() => openLightboxAt(index)}
-                                        src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                                          src={getImageUrl(photo)}
                                         className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition-all ${currentSlide === index ? "ring-4 ring-primary" : "opacity-70"
                                             }`}
                                         alt={`thumb-${index}`}
@@ -564,7 +518,7 @@ const handleSendNotification = async () => {
                                 >
                                     {trip?.tripPhoto?.length ? (
                                         <img
-                                            src={`http://localhost:5000/${trip.tripPhoto[lightboxIndex].replace(/^\\+/, "")}`}
+                                            src={getImageUrl(trip.tripPhoto[lightboxIndex])}
                                             alt={`lightbox-${lightboxIndex}`}
                                             className="max-h-full max-w-full object-contain select-none"
                                             draggable="false"
@@ -1033,15 +987,14 @@ const handleSendNotification = async () => {
                                                     </div>
                                                 </div>
                                                 {/* PHOTO */}
-                                              <div>
+                                                <div>
                                                     <Label className="font-semibold text-lg">Trip Photos</Label>
                                                     <div className="flex gap-3 flex-wrap mt-2">
                                                         {editData.tripPhoto.map((photo, idx) => {
                                                             const url =
-                                                                typeof photo === "string"
-                                                                    ? `http://localhost:5000/${photo}`
-                                                                    : URL.createObjectURL(photo);
-
+  typeof photo === "string"
+    ? getImageUrl(photo) 
+    : URL.createObjectURL(photo);
                                                             return (
                                                                 <div key={idx} className="relative">
                                                                     <img
@@ -1169,109 +1122,104 @@ const handleSendNotification = async () => {
                                     Send Notification
                                 </Button>
                             )}
-                          <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
-  <DialogContent className="sm:max-w-[540px] rounded-2xl p-6">
-    <DialogHeader>
-      <DialogTitle className="text-2xl font-bold">Send Notification</DialogTitle>
-      <DialogDescription className="text-muted-foreground">
-        Notify selected travelers of this trip
-      </DialogDescription>
-    </DialogHeader>
+                            <Dialog open={notifyOpen} onOpenChange={setNotifyOpen}>
+                                <DialogContent className="sm:max-w-[540px] rounded-2xl p-6">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-2xl font-bold">Send Notification</DialogTitle>
+                                        <DialogDescription className="text-muted-foreground">
+                                            Notify selected travelers of this trip
+                                        </DialogDescription>
+                                    </DialogHeader>
 
-    <div className="mt-4 space-y-4">
-      {/* Notification Type */}
-      <div>
-        <label className="text-sm font-semibold mb-1 block">Notification Type</label>
-        <div className="flex gap-3">
-          {["info", "trip", "alert"].map((type) => (
-            <Button
-              key={type}
-              type="button"
-              variant={notifyType === type ? "default" : "outline"}
-              className={`capitalize ${
-                notifyType === type
-                  ? type === "alert"
-                    ? "bg-red-600 hover:bg-red-700 text-white"
-                    : type === "trip"
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                    : "bg-gray-700 hover:bg-gray-800 text-white"
-                  : ""
-              }`}
-              onClick={() => setNotifyType(type)}
-            >
-              {type}
-            </Button>
-          ))}
-        </div>
-      </div>
+                                    <div className="mt-4 space-y-4">
+                                        {/* Notification Type */}
+                                        <div>
+                                            <label className="text-sm font-semibold mb-1 block">Notification Type</label>
+                                            <div className="flex gap-3">
+                                                {["info", "trip", "alert"].map((type) => (
+                                                    <Button
+                                                        key={type}
+                                                        type="button"
+                                                        variant={notifyType === type ? "default" : "outline"}
+                                                        className={`capitalize ${notifyType === type
+                                                                ? type === "alert"
+                                                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                                                    : type === "trip"
+                                                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                                                        : "bg-gray-700 hover:bg-gray-800 text-white"
+                                                                : ""
+                                                            }`}
+                                                        onClick={() => setNotifyType(type)}
+                                                    >
+                                                        {type}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-      {/* Message */}
-      <div>
-        <label className="text-sm font-semibold mb-1 block">Message</label>
-        <textarea
-          value={notifyMessage}
-          onChange={(e) => setNotifyMessage(e.target.value)}
-          placeholder="Enter message for travelers..."
-          className="w-full min-h-[120px] rounded-xl border p-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-      </div>
+                                        {/* Message */}
+                                        <div>
+                                            <label className="text-sm font-semibold mb-1 block">Message</label>
+                                            <textarea
+                                                value={notifyMessage}
+                                                onChange={(e) => setNotifyMessage(e.target.value)}
+                                                placeholder="Enter message for travelers..."
+                                                className="w-full min-h-[120px] rounded-xl border p-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                            />
+                                        </div>
 
-      
-    {/* Participants Selection */}
-<div>
-  <label className="text-sm font-semibold mb-1 block">Select Travelers</label>
+                                        {/* Participants Selection */}
+                                        <div>
+                                            <label className="text-sm font-semibold mb-1 block">Select Travelers</label>
 
-  <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
-    {participants.map((traveler) => (
-      <div key={traveler.authId} className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={selectedTravelers.includes(traveler.authId)}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setSelectedTravelers((prev) => [...prev, traveler.authId]);
-            } else {
-              setSelectedTravelers((prev) =>
-                prev.filter((id) => id !== traveler.authId)
-              );
-            }
-          }}
-        />
-        <span>{traveler.name || "Anonymous"}</span>
-      </div>
-    ))}
-  </div>
-</div>
+                                            <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
+                                                {participants.map((traveler) => (
+                                                    <div key={traveler.authId} className="flex items-center gap-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedTravelers.includes(traveler.authId)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedTravelers((prev) => [...prev, traveler.authId]);
+                                                                } else {
+                                                                    setSelectedTravelers((prev) =>
+                                                                        prev.filter((id) => id !== traveler.authId)
+                                                                    );
+                                                                }
+                                                            }}
+                                                        />
+                                                        <span>{traveler.name || "Anonymous"}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
 
-    </div>
+                                    </div>
 
-    {/* Footer */}
-    <div className="flex justify-end gap-3 pt-4">
-      <Button
-        variant="outline"
-        onClick={() => {
-          setNotifyOpen(false);
-          setNotifyMessage("");
-          setNotifyType("info");
-          setSelectedTravelers(participants.map((p) => p._id));
-        }}
-      >
-        Cancel
-      </Button>
+                                    {/* Footer */}
+                                    <div className="flex justify-end gap-3 pt-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setNotifyOpen(false);
+                                                setNotifyMessage("");
+                                                setNotifyType("info");
+                                                setSelectedTravelers(participants.map((p) => p._id));
+                                            }}
+                                        >
+                                            Cancel
+                                        </Button>
 
-      <Button
-        className="bg-yellow-500 text-white hover:bg-yellow-600"
-        disabled={sending || !notifyMessage.trim() || selectedTravelers.length === 0}
-        onClick={handleSendNotification}
-      >
-        {sending ? "Sending..." : "Send Notification"}
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
-
-
-
+                                        <Button
+                                            className="bg-yellow-500 text-white hover:bg-yellow-600"
+                                            disabled={sending || !notifyMessage.trim() || selectedTravelers.length === 0}
+                                            onClick={handleSendNotification}
+                                        >
+                                            {sending ? "Sending..." : "Send Notification"}
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
 
                             {/* CANCEL TRIP (ONLY UPCOMING) */}
                             {tripStatus === "upcoming" && (
@@ -1313,16 +1261,16 @@ const handleSendNotification = async () => {
                                                 <div className="flex gap-3">
                                                     {/* Avatar */}
                                                     <div className="h-11 w-11 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center font-bold">
-  {tripReview.TravelerId?.photo ? (
-    <img
-      src={`http://localhost:5000/${tripReview.TravelerId.photo.replace(/^\\+/, "")}`}
-      alt={tripReview.TravelerId.name || "Traveler"}
-      className="h-full w-full object-cover"
-    />
-  ) : (
-    (tripReview.TravelerId?.name || "A")[0].toUpperCase()
-  )}
-</div>
+                                                        {tripReview.TravelerId?.photo ? (
+                                                            <img
+                                                                src={getImageUrl(tripReview.TravelerId?.photo)}
+                                                                alt={tripReview.TravelerId.name || "Traveler"}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            (tripReview.TravelerId?.name || "A")[0].toUpperCase()
+                                                        )}
+                                                    </div>
 
 
                                                     <div>
@@ -1348,16 +1296,10 @@ const handleSendNotification = async () => {
                                                     </div>
                                                 </div>
                                             </div>
-
-
-
                                         </div>
                                     )}
                                 </DialogContent>
                             </Dialog>
-
-
-
 
                             {/* ================= COMMON (ALL TRIPS) ================= */}
                             <Dialog open={participantsOpen} onOpenChange={setParticipantsOpen}>
@@ -1384,75 +1326,41 @@ const handleSendNotification = async () => {
                                                 >
                                                     {/* Main row */}
                                                     <div className="flex items-center justify-between gap-3">
-                                                  <div className="flex items-center gap-3">
-    <Avatar>
-      {p.photo ? (
-        <AvatarImage
-          src={`http://localhost:5000/${p.photo.replace(/^\+/, "")}`}
-          alt={p.name || p.username}
-        />
-      ) : null}
+                                                        <div className="flex items-center gap-3">
+                                                            <Avatar>
+                                                                {p.photo ? (
+                                                                    <AvatarImage
+                                                                        src={getImageUrl(p.photo)}
+                                                                        alt={p.name || p.username}
+                                                                    />
+                                                                ) : null}
 
-      <AvatarFallback>
-        {(p.name || p.username)?.charAt(0).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
+                                                                <AvatarFallback>
+                                                                    {(p.name || p.username)?.charAt(0).toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
 
-    <div>
-      <p className="font-medium capitalize">{p.name ?? p.username}</p>
-      <p className="text-sm text-muted-foreground">{p.email}</p>
-    </div>
-  </div>
+                                                            <div>
+                                                                <p className="font-medium capitalize">{p.name ?? p.username}</p>
+                                                                <p className="text-sm text-muted-foreground">{p.email}</p>
+                                                            </div>
+                                                        </div>
 
-                                                        {/* <ChevronDown
-                                                            className={`cursor-pointer transition-transform ${openParticipant === p._id ? "rotate-180" : ""}`}
-                                                            onClick={() => {
-                                                                if (openParticipant === p._id) {
-                                                                    setOpenParticipant(null);
-                                                                } else {
-                                                                    setOpenParticipant(p._id);
-                                                                    fetchEmergencyContacts(p._id);
-                                                                }
-                                                            }}
-                                                        /> */}
                                                     </div>
 
-                                                    {/* Emergency Contact Dropdown */}
-                                                    {/* {openParticipant === p._id && (
-                                                        <div className="mt-3 bg-gray-50 p-3 rounded-md animate-slideDown">
-                                                            <h4 className="font-semibold text-sm mb-2">Emergency Contacts</h4>
-
-                                                            {emergencyContacts[p._id]?.length > 0 ? (
-                                                                emergencyContacts[p._id].map((c, idx) => (
-                                                                    <div
-                                                                        key={idx}
-                                                                        className="p-2 border rounded-md mb-2 bg-white"
-                                                                    >
-                                                                        <p className="font-medium">{c.name}</p>
-                                                                        <p className="text-sm">Phone: {c.phone}</p>
-                                                                        <p className="text-sm text-muted-foreground">
-                                                                            Relation: {c.relation}
-                                                                        </p>
-                                                                    </div>
-                                                                ))
-                                                            ) : (
-                                                                <p className="text-sm text-muted-foreground">No emergency contacts found.</p>
-                                                            )}
-                                                        </div>
-                                                    )} */}
                                                 </div>
                                             ))
                                         )}
                                     </div>
                                 </DialogContent>
                             </Dialog>
-                             <Button
-                variant="secondary"
-                className="w-full gap-2"
-                onClick={handleGroupChat}
-              >
-                <MessageCircle className="h-4 w-4" /> Chat with Group
-              </Button>
+                            <Button
+                                variant="secondary"
+                                className="w-full gap-2"
+                                onClick={handleGroupChat}
+                            >
+                                <MessageCircle className="h-4 w-4" /> Chat with Group
+                            </Button>
 
                             <Separator />
 
@@ -1474,8 +1382,6 @@ const handleSendNotification = async () => {
                         </CardContent>
                     </Card>
                 </div>
-
-
             </div>
         </div>
     );

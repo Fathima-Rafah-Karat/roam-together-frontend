@@ -4,9 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ShieldCheck, Upload, Edit } from "lucide-react";
-import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+
+import {
+  getVerificationStatus,
+  submitVerification,
+} from "../api/admin/verificationApi";
 
 export default function Verification() {
   const [govtIdType, setGovtIdType] = useState("");
@@ -17,8 +21,7 @@ export default function Verification() {
   const [showModal, setShowModal] = useState(false);
   const [formDisabled, setFormDisabled] = useState(false);
 
-  const token = localStorage.getItem("token");
-  const organizerId = localStorage.getItem("userId"); // unified key
+  const organizerId = localStorage.getItem("userId");
   const navigate = useNavigate();
 
   // Fetch verification status
@@ -26,10 +29,7 @@ export default function Verification() {
     if (!organizerId) return;
 
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/verify/viewverify/${organizerId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await getVerificationStatus(organizerId);
 
       const backendStatus =
         res.data?.data?.status || res.data?.status || "not_submitted";
@@ -41,7 +41,7 @@ export default function Verification() {
         setShowModal(true);
       }
     } catch (err) {
-      console.log("Status check error:", err.response?.data);
+      console.error("Status check error:", err);
       setStatus("not_submitted");
     }
   };
@@ -50,7 +50,7 @@ export default function Verification() {
     fetchStatus();
   }, []);
 
-  // Submit / resubmit verification
+  // Submit verification
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -67,26 +67,14 @@ export default function Verification() {
       fd.append("govtIdPhoto", govtIdPhoto);
       fd.append("govtIdType", govtIdType);
 
-      const res = await axios.post(
-        "http://localhost:5000/api/verify/verification",
-        fd,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await submitVerification(fd);
 
       toast.success(res.data.message);
       setStatus("pending");
       setFormDisabled(true);
       setShowModal(true);
-
     } catch (err) {
       const errorData = err.response?.data;
-      console.error(errorData);
-
       toast.error(errorData?.message || "Something went wrong");
 
       if (errorData?.status) {
@@ -99,7 +87,7 @@ export default function Verification() {
     }
   };
 
-  // STATUS MODAL UI
+  // Modal UI
   const renderModal = () => {
     let title = "";
     let message = "";
@@ -123,7 +111,7 @@ export default function Verification() {
 
       actions = (
         <Button
-          className="bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 mx-auto mt-2"
+          className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 mx-auto mt-2"
           onClick={() => {
             setFormDisabled(false);
             setShowModal(false);
@@ -161,25 +149,22 @@ export default function Verification() {
             <ShieldCheck className="w-8 h-8 text-blue-600" />
             <h2 className="text-2xl font-semibold">Organizer Verification</h2>
           </div>
-          <p className="mb-4 text-gray-500">
-            Please complete your verification to access all organizer features.
-          </p>
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <Label className="text-md font-semibold">Profile Photo</Label>
+              <Label>Profile Photo</Label>
               <Input
                 type="file"
                 accept="image/*"
-                className="mt-1"
                 onChange={(e) => setPhoto(e.target.files[0])}
                 disabled={formDisabled}
               />
             </div>
 
             <div>
-              <Label className="text-md font-semibold">Government ID Type</Label>
+              <Label>Government ID Type</Label>
               <select
-                className="w-full p-2 border rounded-md mt-1 bg-gray-50"
+                className="w-full p-2 border rounded-md"
                 value={govtIdType}
                 onChange={(e) => setGovtIdType(e.target.value)}
                 disabled={formDisabled}
@@ -191,32 +176,21 @@ export default function Verification() {
             </div>
 
             <div>
-              <Label className="text-md font-semibold">Government ID Photo</Label>
+              <Label>Government ID Photo</Label>
               <Input
                 type="file"
                 accept="image/*"
-                className="mt-1"
                 onChange={(e) => setGovtIdPhoto(e.target.files[0])}
                 disabled={formDisabled}
               />
             </div>
-
-            <p className="text-base text-muted-foreground">
-              This information is encrypted and used only for verification purposes.
-            </p>
 
             <Button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={loading || formDisabled}
             >
-              {loading ? (
-                "Submitting..."
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2 inline" /> Submit Verification
-                </>
-              )}
+              {loading ? "Submitting..." : <><Upload className="w-4 h-4 mr-2" /> Submit Verification</>}
             </Button>
           </form>
         </div>

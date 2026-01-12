@@ -34,7 +34,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import axios from "axios";
+// import axios from "axios";
+import { getParticipantCount } from "../api/participantsApi";
+import { getTripById } from "../api/tripsApi";
+import { getParticipants } from "../api/participantsApi";
+import { cancelTrip } from "../api/traveler/cancelTripApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import {  toast } from "react-hot-toast";
 
 
@@ -59,45 +64,42 @@ export default function TripDetails() {
   const [participantCount, setParticipantCount] = useState(0);
 
 console.log("hi");
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        if (!trip?._id) return;
+useEffect(() => {
+  const fetchCount = async () => {
+    if (!trip?._id) return;
 
-        const res = await axios.get(
-          `http://localhost:5000/api/traveler/participants/${trip._id}`
-        );
-    
-        if (res.data.success) {
-          setParticipantCount(res.data.count);
-        }
-         console.log(res.data.data);
-         
-      } catch (err) {
-        console.error("Error fetching participant count:", err);
+    try {
+      const res = await getParticipantCount(trip._id); // use helper
+      if (res.success) {
+        setParticipantCount(res.count); // update state
       }
-    };
+      console.log("Participants data:", res.data); // optional for debugging
+    } catch (err) {
+      console.error("Error fetching participant count:", err);
+    }
+  };
 
-    fetchCount();
-  }, [trip]);
+  fetchCount();
+}, [trip]);
+useEffect(() => {
+  const fetchTrip = async () => {
+    try {
+      const data = await getTripById(id); // use helper
+      setTrip(data || null);
+    } catch (err) {
+      console.error("Failed to fetch trip:", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch trip details",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    const fetchTrip = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5000/api/traveler/${id}`);
-        setTrip(res.data.data || null);
-      } catch (err) {
-        console.error(err);
-        toast({
-          title: "Error",
-          description: "Failed to fetch trip details",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTrip();
-  }, [id, toast]);
+  fetchTrip();
+}, [id, toast]);
+
 
   useEffect(() => {
     if (!trip?.tripPhoto?.length) return;
@@ -139,32 +141,23 @@ console.log("hi");
     setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
   };
 
-  useEffect(() => {
-    if (participantsOpen && trip?._id) {
-      fetchParticipants();
-    }
-  }, [participantsOpen, trip?._id]);
+ useEffect(() => {
+  const fetchData = async () => {
+    if (!participantsOpen || !trip?._id) return;
 
-  const fetchParticipants = async () => {
     try {
-      console.log("hihhi");
-      
-      const res = await axios.get(
-        `http://localhost:5000/api/traveler/participants/${trip._id}`
-        
-      );
-      console.log(res.data);
-      
-
-
-      if (res.data.success) {
-        setParticipants(res.data.data); 
+      const data = await getParticipants(trip._id); // use helper
+      if (data.success) {
+        setParticipants(data.data); // set participants
+        setParticipantCount(data.count || 0); // optional: update count
       }
-      console.log(res.data.data);
     } catch (error) {
       console.error("Error loading participants:", error);
     }
   };
+
+  fetchData();
+}, [participantsOpen, trip?._id]);
 
   const openLightboxAt = (index) => {
     if (!trip?.tripPhoto?.length) return;
@@ -237,31 +230,18 @@ const handleDeleteTrip = async () => {
       );
     });
 
-    if (!confirm) return; 
+    if (!confirm) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      toast.error("Unauthorized — please login again");
-      return;
-    }
+    const res = await cancelTrip(trip._id);
 
-    const res = await axios.delete(
-      `http://localhost:5000/api/traveler/remove-trip/${trip._id}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    if (res.data.success) {
-      toast.success(res.data.message);
-      navigate(-1); 
+    if (res.success) {
+      toast.success(res.message);
+      navigate(-1);
     }
   } catch (error) {
-    console.error(error);
-    toast.error(error.response?.data?.message || "Failed to cancel trip");
+    toast.error(error.response?.data?.message || error.message || "Failed to cancel trip");
   }
 };
-
-
-
  
   return (
     <div className="space-y-6">
@@ -284,12 +264,12 @@ const handleDeleteTrip = async () => {
               >
                 {trip.tripPhoto?.length > 0 ? (
                   trip.tripPhoto.map((photo, index) => (
-                    <img
-                      key={index}
-                      src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
-                      alt={`${trip.title} ${index + 1}`}
-                      className="h-96 w-full flex-shrink-0 object-cover rounded-lg snap-center"
-                    />
+                     <img
+      key={index}
+      src={getImageUrl(photo)}
+      alt={`${trip.title} ${index + 1}`}
+      className="h-96 w-full flex-shrink-0 object-cover rounded-lg snap-center"
+    />
                   ))
                 ) : (
                   <img
@@ -313,7 +293,7 @@ const handleDeleteTrip = async () => {
                       className="relative h-20 w-28 cursor-pointer rounded-lg overflow-hidden"
                     >
                       <img
-                        src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                         src={getImageUrl(photo)}
                         className="h-full w-full object-cover opacity-70"
                         alt={`thumb-${index}`}
                       />
@@ -328,7 +308,7 @@ const handleDeleteTrip = async () => {
                   <img
                     key={index}
                     onClick={() => openLightboxAt(index)}
-                    src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                     src={getImageUrl(photo)}
                     className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition-all ${
                       currentSlide === index ? "ring-4 ring-primary" : "opacity-70"
                     }`}
@@ -361,7 +341,7 @@ const handleDeleteTrip = async () => {
                 >
                   {trip?.tripPhoto?.length ? (
                     <img
-                      src={`http://localhost:5000/${trip.tripPhoto[lightboxIndex].replace(/^\\+/, "")}`}
+                      src={getImageUrl(trip.tripPhoto[lightboxIndex])}
                       alt={`lightbox-${lightboxIndex}`}
                       className="max-h-full max-w-full object-contain select-none"
                       draggable="false"
@@ -648,7 +628,7 @@ const handleDeleteTrip = async () => {
     <Avatar>
       {p.photo ? (
         <AvatarImage
-          src={`http://localhost:5000/${p.photo.replace(/^\+/, "")}`}
+           src={getImageUrl(p.photo)}
           alt={p.name || p.username}
         />
       ) : null}

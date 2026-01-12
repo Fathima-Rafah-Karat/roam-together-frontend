@@ -251,7 +251,10 @@
 
 
 import { useEffect, useState } from "react";
-import axios from "axios";
+// import axios from "axios";
+import { getAllTrips } from "../api/tripsApi";
+import { getUserRegistrations } from "../api/traveler/registrationApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import {
   Card,
   CardContent,
@@ -276,35 +279,29 @@ export default function DiscoverTrips() {
   const [registeredTrips, setRegisteredTrips] = useState([]);
 
   const fetchTrips = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/traveler/trips");
-      const tripsData = res.data.data || [];
-      setTrips(tripsData);
-      setFilteredTrips(tripsData);
-    } catch (err) {
-      toast.error("Failed to load trips");
-    } finally {
-      setLoading(false);
+  try {
+    const res = await getAllTrips();
+    const tripsData = res.data || [];
+    setTrips(tripsData);
+    setFilteredTrips(tripsData);
+  } catch (err) {
+    toast.error("Failed to load trips");
+  } finally {
+    setLoading(false);
+  }
+};
+
+ const fetchUserRegistrations = async () => {
+  try {
+    const res = await getUserRegistrations();
+
+    if (res.success) {
+      setRegisteredTrips(res.data.map((trip) => trip._id));
     }
-  };
-
-  const fetchUserRegistrations = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const res = await axios.get(
-        "http://localhost:5000/api/traveler/registered",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (res.data.success) {
-        setRegisteredTrips(res.data.data.map((trip) => trip._id));
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  } catch (err) {
+    console.error("Failed to fetch registrations", err);
+  }
+};
 
   useEffect(() => {
     fetchTrips();
@@ -356,11 +353,7 @@ export default function DiscoverTrips() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredTrips.map((trip) => {
-          const imageUrl =
-            trip.tripPhoto?.length > 0
-              ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
-              : "/fallback.jpg";
-
+         const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
           const isRegistered = registeredTrips.includes(trip._id);
           const isPastTrip = new Date(trip.endDate) < new Date();
 

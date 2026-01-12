@@ -124,14 +124,15 @@
 
 
 
-
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Send } from "lucide-react";
-import axios from "axios";
-import socket from "../socket";
 
-const API = "http://localhost:5000";
+import socket from "../socket";
+import { getTripById, getParticipants, getTripMessages } from "../api/traveler/chatApi";
+import { getImageUrl } from "../utils/getImageUrl";
+
+/* ---------------- HELPERS ---------------- */
 
 const getUserIdFromToken = (token) => {
   try {
@@ -142,16 +143,16 @@ const getUserIdFromToken = (token) => {
   }
 };
 
-// Format date to hh:mm AM/PM
 const formatTime = (dateString) => {
   const date = new Date(dateString);
   let hours = date.getHours();
   const minutes = date.getMinutes();
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
-  const mins = minutes < 10 ? "0" + minutes : minutes;
-  return `${hours}:${mins} ${ampm}`;
+  return `${hours}:${minutes.toString().padStart(2, "0")} ${ampm}`;
 };
+
+/* ---------------- COMPONENT ---------------- */
 
 const TripChat = () => {
   const { id: tripId } = useParams();
@@ -159,48 +160,39 @@ const TripChat = () => {
 
   const [tripName, setTripName] = useState("");
   const [tripPhoto, setTripPhoto] = useState("");
-  const [messages, setMessages] = useState([]);
   const [participants, setParticipants] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
 
   const messagesEndRef = useRef(null);
+
   const token = localStorage.getItem("token");
   const myUserId = getUserIdFromToken(token);
+
+  /* -------- Load chat data -------- */
 
   useEffect(() => {
     if (!tripId || !token) return;
 
-    const loadData = async () => {
+    const loadChat = async () => {
       try {
-        const tripRes = await axios.get(`${API}/api/traveler/${tripId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setTripName(tripRes.data.data.title);
-        setTripPhoto(
-          tripRes.data.data.tripPhoto?.[0]
-            ? `${API}/${tripRes.data.data.tripPhoto[0]}`
-            : ""
-        );
+        const trip = await getTripById(tripId);
+        setTripName(trip.title);
+        setTripPhoto(getImageUrl(trip.tripPhoto?.[0]));
 
-        const participantRes = await axios.get(
-          `${API}/api/traveler/participants/${tripId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setParticipants(participantRes.data.data);
+        const users = await getParticipants(tripId);
+        setParticipants(users);
 
-        const msgRes = await axios.get(
-          `${API}/api/traveler/${tripId}/messages`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const msgs = await getTripMessages(tripId);
 
         setMessages(
-          msgRes.data.data.map((msg) => {
+          msgs.map((msg) => {
             const senderName =
-              msg.senderId === myUserId
+              String(msg.senderId) === String(myUserId)
                 ? "You"
-                : participantRes.data.data.find(
-                    (p) => p.authId === msg.senderId
-                  )?.name || msg.senderName || "Unknown";
+                : users.find((u) => u.authId === msg.senderId)?.name ||
+                  msg.senderName ||
+                  "Unknown";
 
             return {
               _id: msg._id,
@@ -219,8 +211,10 @@ const TripChat = () => {
       }
     };
 
-    loadData();
+    loadChat();
   }, [tripId, token, myUserId]);
+
+  /* -------- Socket -------- */
 
   useEffect(() => {
     if (!tripId) return;
@@ -231,7 +225,7 @@ const TripChat = () => {
       if (String(msg.senderId) === String(myUserId)) return;
 
       setMessages((prev) => {
-        if (prev.find((m) => m._id === msg._id)) return prev;
+        if (prev.some((m) => m._id === msg._id)) return prev;
 
         const senderName =
           participants.find((p) => p.authId === msg.senderId)?.name ||
@@ -257,9 +251,13 @@ const TripChat = () => {
     return () => socket.off("receiveMessage");
   }, [tripId, participants, myUserId]);
 
+  /* -------- Auto scroll -------- */
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /* -------- Send message -------- */
 
   const sendMessage = () => {
     if (!message.trim() || !myUserId) return;
@@ -269,14 +267,16 @@ const TripChat = () => {
       tripId,
       text: message,
       senderId: myUserId,
-      senderName: "You", // Always "You" for sender
+      senderName: "You",
       createdAt: new Date().toISOString(),
     };
 
     socket.emit("sendMessage", msgPayload);
-    setMessage("");
     setMessages((prev) => [...prev, msgPayload]);
+    setMessage("");
   };
+
+  /* ---------------- UI ---------------- */
 
   return (
     <div className="w-full h-screen flex flex-col bg-[#e5ddd5]">
@@ -285,6 +285,7 @@ const TripChat = () => {
         <button onClick={() => navigate(-1)} className="mr-3">
           <ArrowLeft size={24} />
         </button>
+
         {tripPhoto && (
           <img
             src={tripPhoto}
@@ -292,6 +293,7 @@ const TripChat = () => {
             className="h-10 w-10 rounded-full mr-2 object-cover"
           />
         )}
+
         <span className="font-bold">{tripName}</span>
       </div>
 
@@ -312,11 +314,11 @@ const TripChat = () => {
                     : "bg-white text-gray-800 rounded-bl-none"
                 }`}
               >
-                <div className="text-[11px] font-bold text-gray-600 mb-1">
+                <div className="text-[11px] font-bold mb-1">
                   {msg.senderName}
                 </div>
                 <div>{msg.text}</div>
-                <div className="text-[10px] text-gray-500 mt-1 text-right">
+                <div className="text-[10px] text-gray-600 mt-1 text-right">
                   {formatTime(msg.createdAt)}
                 </div>
               </div>
@@ -347,18 +349,6 @@ const TripChat = () => {
 };
 
 export default TripChat;
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
