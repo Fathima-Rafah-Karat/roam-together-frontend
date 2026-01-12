@@ -135,9 +135,10 @@ import { useNavigate } from "react-router-dom";
 import CountUp from "react-countup";
 import heroImage from "@/assets/hero-travel.jpg";
 import { toast } from "react-hot-toast";
-import axios from "axios";
+// import axios from "axios";
+import { getVerificationStatus } from "../api/verifyApi";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -160,16 +161,8 @@ const Hero = () => {
     }
 
     // Organizer → check verification
-    try {
-      const res = await axios.get(
-        `${API_URL}/verify/viewverify/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+   try {
+      const res = await getVerificationStatus(userId);
       const status = res?.data?.data?.status;
 
       if (!status || status === "pending") {
@@ -186,9 +179,9 @@ const Hero = () => {
 
       if (status === "approved") {
         navigate("/createtrip");
-        return;
       }
-    } catch (err) {
+    } catch (error) {
+      toast.error("Verification check failed");
       navigate("/verification");
     }
   };
