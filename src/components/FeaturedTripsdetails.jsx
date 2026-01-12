@@ -35,7 +35,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import axios from "axios";
+// import axios from "axios";
+import { getParticipantCount } from "../api/participantsApi";
+import { getTripById } from "../api/tripsApi";
+import { getParticipants } from "../api/participantsApi";
+import { getImageUrl } from "../utils/getImageUrl";
+import { registerForTrip } from "../api/traveler/registrationApi";
 import { Toaster, toast } from "react-hot-toast";
 
 
@@ -63,47 +68,46 @@ export default function FeaturedTripsdetails() {
 
   
   // Fetch participant count when component loads or when participants change
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        if (!trip?._id) return;
+ useEffect(() => {
+  const fetchCount = async () => {
+    try {
+      if (!trip?._id) return;
 
-        const res = await axios.get(
-          `http://localhost:5000/api/traveler/participants/${trip._id}`
-        );
+      const data = await getParticipantCount(trip._id);
 
-        if (res.data.success) {
-          setParticipantCount(res.data.count);
-        }
-      } catch (err) {
-        console.error("Error fetching participant count:", err);
+      if (data?.success) {
+        setParticipantCount(data.count);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching participant count:", err);
+    }
+  };
 
-    fetchCount();
-  }, [trip]);
-  
+  fetchCount();
+}, [trip?._id]);
 
   // Fetch trip details
-  useEffect(() => {
-    const fetchTrip = async () => {
-      try {
-        const res = await axios.get(`http://localhost:5000/api/traveler/${id}`);
-        setTrip(res.data.data || null);
-        console.log(res.data);
+useEffect(() => {
+  const fetchTrip = async () => {
+    try {
+      if (!id) return;
 
-      } catch (err) {
-        console.error(err);
-        toast({
-          title: "Error",
-          description: "Failed to fetch trip details",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTrip();
-  }, [id, toast]);
+      const tripData = await getTripById(id);
+      setTrip(tripData || null);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch trip details",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchTrip();
+}, [id]);
+
 
   // Auto-scroll images every 2 seconds (keeps original behavior)
   useEffect(() => {
@@ -141,9 +145,9 @@ export default function FeaturedTripsdetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightboxOpen, trip, lightboxIndex]);
 
-  const handleChat = (phone) => {
-    window.open(`https://wa.me/${phone}`, "_blank");
-  };
+  // const handleChat = (phone) => {
+  //   window.open(`https://wa.me/${phone}`, "_blank");
+  // };
 
   const toggleDay = (day) => {
     setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
@@ -151,27 +155,23 @@ export default function FeaturedTripsdetails() {
 
 
 
-  useEffect(() => {
-    if (participantsOpen && trip?._id) {
-      fetchParticipants();
+useEffect(() => {
+  if (participantsOpen && trip?._id) {
+    fetchParticipants();
+  }
+}, [participantsOpen, trip?._id]);
+
+const fetchParticipants = async () => {
+  try {
+    const data = await getParticipants(trip._id);
+
+    if (data.success) {
+      setParticipants(data.data);
     }
-  }, [participantsOpen, trip?._id]);
-
-  const fetchParticipants = async () => {
-    try {
-      const res = await axios.get(
-        `http://localhost:5000/api/traveler/participants/${trip._id}`
-      );
-
-      if (res.data.success) {
-        setParticipants(res.data.data); // Store all users
-      }
-    } catch (error) {
-      console.error("Error loading participants:", error);
-    }
-  };
-
-
+  } catch (error) {
+    console.error("Error loading participants:", error);
+  }
+};
 
   // Lightbox helpers
   const openLightboxAt = (index) => {
@@ -244,7 +244,7 @@ export default function FeaturedTripsdetails() {
                   trip.tripPhoto.map((photo, index) => (
                     <img
                       key={index}
-                      src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                      src={getImageUrl(photo)}
                       alt={`${trip.title} ${index + 1}`}
                       className="h-96 w-full flex-shrink-0 object-cover rounded-lg snap-center"
                     />
@@ -274,7 +274,7 @@ export default function FeaturedTripsdetails() {
                       className="relative h-20 w-28 cursor-pointer rounded-lg overflow-hidden"
                     >
                       <img
-                        src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                        src={getImageUrl(photo)}
                         className="h-full w-full object-cover opacity-70"
                         alt={`thumb-${index}`}
                       />
@@ -290,7 +290,7 @@ export default function FeaturedTripsdetails() {
                   <img
                     key={index}
                     onClick={() => openLightboxAt(index)}
-                    src={`http://localhost:5000/${photo.replace(/^\\+/, "")}`}
+                    src={getImageUrl(photo)}
                     className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition-all 
                       ${currentSlide === index ? "ring-4 ring-primary" : "opacity-70"}`}
                     alt={`thumb-${index}`}
@@ -337,7 +337,7 @@ export default function FeaturedTripsdetails() {
                   {/* IMAGE */}
                   {trip?.tripPhoto?.length ? (
                     <img
-                      src={`http://localhost:5000/${trip.tripPhoto[lightboxIndex].replace(/^\\+/, "")}`}
+                      src={getImageUrl(trip.tripPhoto[lightboxIndex])}
                       alt={`lightbox-${lightboxIndex}`}
                       className="max-h-full max-w-full object-contain select-none"
                       draggable="false"
@@ -648,50 +648,45 @@ export default function FeaturedTripsdetails() {
     {/* Check if user is logged in */}
     {localStorage.getItem("token") ? (
       <form
-        className="space-y-4 mt-4"
-        onSubmit={async (e) => {
-          e.preventDefault();
+  className="space-y-4 mt-4"
+  onSubmit={async (e) => {
+    e.preventDefault();
 
-          if (participantCount >= trip.participants) {
-            toast.error("Registration full. No more seats available.");
-            return;
-          }
+    if (participantCount >= trip.participants) {
+      toast.error("Registration full. No more seats available.");
+      return;
+    }
 
-          const formData = new FormData();
-          formData.append("name", e.target.name.value);
-          formData.append("email", e.target.email.value);
-          formData.append("phone", e.target.phone.value);
-          formData.append("tripId", trip._id);
+    const formData = new FormData();
+    formData.append("name", e.target.name.value);
+    formData.append("email", e.target.email.value);
+    formData.append("phone", e.target.phone.value);
+    formData.append("tripId", trip._id);
 
-          if (e.target.photo.files[0]) {
-            formData.append("photo", e.target.photo.files[0]);
-          }
-          if (e.target.aadharcard.files[0]) {
-            formData.append("aadharcard", e.target.aadharcard.files[0]);
-          }
+    if (e.target.photo.files[0]) {
+      formData.append("photo", e.target.photo.files[0]);
+    }
+    if (e.target.aadharcard.files[0]) {
+      formData.append("aadharcard", e.target.aadharcard.files[0]);
+    }
 
-          try {
-            const token = localStorage.getItem("token");
-            const res = await axios.post(
-              "http://localhost:5000/api/traveler/register",
-              formData,
-              {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
+    try {
+      const data = await registerForTrip(formData);
 
-            toast.success("Registration Successful!");
-            setRegisterOpen(false);
-            setParticipantCount((prev) => prev + 1);
-          } catch (err) {
-            console.error("Registration error:", err);
-            toast.error(err.response?.data?.error || "Server error");
-          }
-        }}
-      >
+      if (data.success) {
+        toast.success("Registration Successful!");
+        setRegisterOpen(false);
+        setParticipantCount((prev) => prev + 1);
+      } else {
+        toast.error(data.message || "Registration failed");
+      }
+    } catch (err) {
+      console.error("Registration error:", err);
+      toast.error(err.response?.data?.error || "Server error");
+    }
+  }}
+>
+
         {/* Full Name */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Full Name</label>
