@@ -1,14 +1,13 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/",
-  withCredentials: true, // keep only if backend uses cookies
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000", // Use env variable
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Attach token automatically
+// Automatically attach token if present
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -18,3 +17,4 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+

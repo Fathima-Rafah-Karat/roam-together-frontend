@@ -3,7 +3,7 @@ import api from "./axios";
 export const getAllTrips = async () => {
   try {
     const response = await api.get("/api/traveler/trips");
-    return response.data; // contains the trips array
+    return response.data || []; // always return an array
   } catch (err) {
     console.error("Failed to fetch trips", err);
     throw err;

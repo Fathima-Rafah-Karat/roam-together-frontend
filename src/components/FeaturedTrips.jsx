@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,9 +16,8 @@ const FeaturedTrips = () => {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-                const data = await getAllTrips();
-
-        setTrips(data || []);
+        const data = await getAllTrips();
+        setTrips(data); // data is already an array
       } catch (err) {
         console.error("Failed to fetch trips", err);
       } finally {
@@ -46,15 +44,13 @@ const FeaturedTrips = () => {
 
         {/* Trips Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {displayedTrips.map((trip) => {
+          {displayedTrips.map((trip) => {
             const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
-
 
             return (
               <Card
                 key={trip._id}
                 className="relative overflow-hidden h-96 cursor-pointer hover:shadow-xl transition-shadow"
-                // onClick={() => navigate(`/trips/${trip._id}`)} // Navigate to details
               >
                 <img
                   src={imageUrl}
@@ -62,7 +58,6 @@ const FeaturedTrips = () => {
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/25 to-black/10" />
-
                 <div className="relative z-10 h-full flex flex-col justify-end p-6 text-white">
                   {/* Tags */}
                   {trip.tags?.length > 0 && (
@@ -94,7 +89,6 @@ const FeaturedTrips = () => {
                       {new Date(trip.startDate).toLocaleDateString("en-GB")} -{" "}
                       {new Date(trip.endDate).toLocaleDateString("en-GB")}
                     </span>
-
                     <span className="flex items-center gap-1">
                       <Users className="h-5 w-5" />
                       {trip.participants}
@@ -103,10 +97,7 @@ const FeaturedTrips = () => {
 
                   <Button
                     className="w-full mt-4"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/trips/${trip._id}`);
-                    }}
+                    onClick={() => navigate(`/trips/${trip._id}`)}
                   >
                     View Details
                   </Button>
