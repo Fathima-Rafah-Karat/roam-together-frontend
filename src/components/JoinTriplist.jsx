@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 // import axios from "axios";
-import getTrips from "../api/tripsApi"
+import getAllTrips from "../api/tripsApi"
 import { getUserRegistrations } from "../api/traveler/registrationApi";
-import { getImageUrl } from "../utils/getImageUrl";
+import getImageUrl from "../utils/getImageUrl"
 import {
   Card,
   CardContent,
@@ -32,12 +32,12 @@ export default function JoinTrip() {
    useEffect(() => {
     const fetchData = async () => {
       try {
-        const tripsData = await getTrips();
+        const tripsData = await getAllTrips();
         setTrips(tripsData);
         setFilteredTrips(tripsData);
 
-        const userTripIds = await getUserRegistrations();
-        setRegisteredTrips(userTripIds);
+        const registeredIds = await getUserRegistrations();
+        setRegisteredTrips(registeredIds);
       } catch (err) {
         console.error(err);
         toast.error("Failed to load trips");
@@ -48,8 +48,6 @@ export default function JoinTrip() {
 
     fetchData();
   }, []);
-
-
   // Search handler
   const handleSearch = (query) => {
     setSearch(query);
@@ -115,8 +113,7 @@ export default function JoinTrip() {
       {/* Trip Grid */}
       <div className= " ml-5 mr-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredTrips.map((trip) => {
-        const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
-
+         const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
 
           const isRegistered = registeredTrips.includes(trip._id);
 
