@@ -1,13 +1,8 @@
 import api from "./axios";
 
 export const getAllTrips = async () => {
-  try {
-    const response = await api.get("/api/traveler/trips");
-    return response.data || []; // always return an array
-  } catch (err) {
-    console.error("Failed to fetch trips", err);
-    throw err;
-  }
+  const response = await api.get("/api/traveler/trips");
+  return response.data;
 };
 export const getTripById = async (tripId) => {
   const res = await api.get(`/api/traveler/${tripId}`);
