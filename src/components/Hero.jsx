@@ -234,7 +234,7 @@ const Hero = () => {
                 }
 
                 // Traveler allowed
-                navigate("/dash/dashboard");
+                navigate("/dashboard");
               }}
             >
               <Users className="mr-2 h-5 w-5" />
