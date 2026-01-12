@@ -773,14 +773,14 @@ const fetchParticipants = async () => {
 </Dialog>
 
 
-              <Button
+              {/* <Button
                 variant="secondary"
                 className="w-full gap-2"
                 onClick={handleChat}
               >
                 <MessageCircle className="h-4 w-4" /> Chat with Group
               </Button>
-  
+   */}
 
 
               <Separator />
