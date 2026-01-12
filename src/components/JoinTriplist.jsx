@@ -1,8 +1,10 @@
 
 
 import { useEffect, useState } from "react";
-import axios from "axios";
-
+// import axios from "axios";
+import getTrips from "../api/tripsApi"
+import { getUserRegistrations } from "../api/traveler/registrationApi";
+import { getImageUrl } from "../utils/getImageUrl";
 import {
   Card,
   CardContent,
@@ -27,48 +29,26 @@ export default function JoinTrip() {
   const [registeredTrips, setRegisteredTrips] = useState([]); // only trip IDs
 
   // Fetch all trips
-  const fetchTrips = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/traveler/trips");
+   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const tripsData = await getTrips();
+        setTrips(tripsData);
+        setFilteredTrips(tripsData);
 
-      const tripsData = res.data.data || [];
-      setTrips(tripsData);
-      setFilteredTrips(tripsData);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load trips");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch trips user has registered for
-  const fetchUserRegistrations = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const res = await axios.get(
-        "http://localhost:5000/api/traveler/registered",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.data.success) {
-        // backend returns full trip objects → convert to only IDs
-        const ids = res.data.data.map((trip) => trip._id);
-        setRegisteredTrips(ids);
+        const userTripIds = await getUserRegistrations();
+        setRegisteredTrips(userTripIds);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load trips");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching registrations:", err);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchTrips();
-    fetchUserRegistrations();
+    fetchData();
   }, []);
+
 
   // Search handler
   const handleSearch = (query) => {
@@ -135,10 +115,8 @@ export default function JoinTrip() {
       {/* Trip Grid */}
       <div className= " ml-5 mr-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredTrips.map((trip) => {
-          const imageUrl =
-            trip.tripPhoto && trip.tripPhoto.length > 0
-              ? `http://localhost:5000/${trip.tripPhoto[0].replace(/^\/+/, "")}`
-              : "/fallback.jpg";
+        const imageUrl = getImageUrl(trip.tripPhoto?.[0]);
+
 
           const isRegistered = registeredTrips.includes(trip._id);
 
