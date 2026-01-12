@@ -18,6 +18,8 @@ const FeaturedTrips = () => {
       try {
         const data = await getAllTrips();
         setTrips(data); // data is already an array
+        console.log(data,"trip");
+        
       } catch (err) {
         console.error("Failed to fetch trips", err);
       } finally {
