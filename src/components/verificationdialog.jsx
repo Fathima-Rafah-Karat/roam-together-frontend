@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ShieldCheck, Upload } from "lucide-react";
-import axios from "axios";
+// import axios from "axios";
+import {submitVerification} from "../api/admin/verificationApi"
 import { toast, Toaster } from "react-hot-toast";
 
 export function VerificationDialog({
@@ -25,43 +26,33 @@ export function VerificationDialog({
 
     const token = localStorage.getItem("token"); // Organizer JWT
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+     const handleSubmit = async (e) => {
+    e.preventDefault();
 
-        if (!photo || !govtIdPhoto || !govtIdType) {
-            toast.error("All fields are required!");
-            return;
-        }
+    if (!photo || !govtIdPhoto || !govtIdType) {
+      toast.error("All fields are required!");
+      return;
+    }
 
-        try {
-            setUploading(true);
-            const fd = new FormData();
-            fd.append("photo", photo);
-            fd.append("govtIdPhoto", govtIdPhoto);
-            fd.append("govtIdType", govtIdType);
+    try {
+      setUploading(true);
+      const fd = new FormData();
+      fd.append("photo", photo);
+      fd.append("govtIdPhoto", govtIdPhoto);
+      fd.append("govtIdType", govtIdType);
 
-            const res = await axios.post(
-                "http://localhost:5000/api/verify/verification",
-                fd,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                        Authorization: `Bearer ${token}`, // send token
-                    },
-                }
-            );
+      const res = await submitVerification(fd);
 
-            toast.success(res.data.message || "Verification submitted successfully!");
-            onVerified(true); // call parent callback safely
-            onOpenChange(false); // close modal
-        } catch (err) {
-            console.error("Verification Error:", err);
-            toast.error(err.response?.data?.message || "Failed to submit verification");
-        } finally {
-            setUploading(false);
-        }
-    };
-
+      toast.success(res.message || "Verification submitted successfully!");
+      onVerified(true);       // notify parent
+      onOpenChange(false);    // close modal
+    } catch (err) {
+      console.error("Verification Error:", err);
+      toast.error(err.response?.data?.message || "Failed to submit verification");
+    } finally {
+      setUploading(false);
+    }
+  };
     return (
         <>
             <Toaster position="top-center" />
