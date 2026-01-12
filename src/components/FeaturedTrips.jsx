@@ -19,7 +19,7 @@ const FeaturedTrips = () => {
       try {
                 const data = await getAllTrips();
 
-        setTrips(data.data || []);
+        setTrips(data || []);
       } catch (err) {
         console.error("Failed to fetch trips", err);
       } finally {
