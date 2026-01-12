@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 // import axios from "axios";
-import getAllTrips from "../api/tripsApi"
+import {getAllTrips} from "../api/tripsApi"
 import { getUserRegistrations } from "../api/traveler/registrationApi";
-import getImageUrl from "../utils/getImageUrl"
+import {getImageUrl} from "../utils/getImageUrl"
 import {
   Card,
   CardContent,
