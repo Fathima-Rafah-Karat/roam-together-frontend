@@ -222,6 +222,7 @@ const fetchParticipants = async () => {
 
   return (
     <div className="space-y-6">
+      <Toaster position="top-center" reverseOrder={false} />
       <Button
         variant="ghost"
         className="gap-2"
