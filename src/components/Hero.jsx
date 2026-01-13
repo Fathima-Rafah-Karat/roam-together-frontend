@@ -128,40 +128,36 @@
 // export default Hero;
 
 
-
 import { Button } from "@/components/ui/button";
 import { MapPin, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import CountUp from "react-countup";
 import heroImage from "@/assets/hero-travel.jpg";
 import { toast } from "react-hot-toast";
-// import axios from "axios";
 import { getVerificationStatus } from "../api/verifyApi";
-
-// const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const Hero = () => {
   const navigate = useNavigate();
+
+  // 🔁 Toggle this
+  const isResponsive = true; // false = non-responsive
 
   const handleCreateTrip = async () => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     const userId = localStorage.getItem("userId");
 
-    // Not logged in
     if (!token) {
       navigate("/auth");
       return;
     }
 
-    // Not organizer
     if (role !== "Organizer") {
       navigate("/no-access");
       return;
     }
 
-    // Organizer → check verification
-   try {
+    try {
       const res = await getVerificationStatus(userId);
       const status = res?.data?.data?.status;
 
@@ -186,9 +182,14 @@ const Hero = () => {
     }
   };
 
+  // 🎯 Count text class
+  const countTextClass = isResponsive
+    ? "text-xl sm:text-2xl md:text-3xl lg:text-4xl"
+    : "text-3xl";
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-      {/* Background Image */}
+      {/* Background */}
       <div
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${heroImage})` }}
@@ -199,22 +200,20 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
             Travel Together. <br />
             <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
               Discover More.
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Connect with adventure enthusiasts and solo travelers. Join unforgettable trips,
             make lifelong friends, and share amazing travel memories.
           </p>
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            
-            {/* JOIN TRIP */}
             <Button
               size="lg"
               className="text-base px-8"
@@ -227,13 +226,11 @@ const Hero = () => {
                   return;
                 }
 
-                // 🚫 Organizer cannot join trips
                 if (role === "Organizer") {
                   navigate("/join-trip-no-access");
                   return;
                 }
 
-                // Traveler allowed
                 navigate("/dash/dashboard");
               }}
             >
@@ -241,7 +238,6 @@ const Hero = () => {
               Join a Trip
             </Button>
 
-            {/* CREATE TRIP */}
             <Button
               size="lg"
               variant="secondary"
@@ -254,26 +250,41 @@ const Hero = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-16">
-            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-6">
-              <div className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2">
+          <div className="grid grid-cols-3 gap-4 sm:gap-6 max-w-2xl mx-auto mt-16">
+            {/* Active Trips */}
+            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-4 sm:p-6">
+              <div
+                className={`font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-2 ${countTextClass}`}
+              >
                 <CountUp start={0} end={500} duration={2.5} suffix="+" />
               </div>
-              <div className="text-sm text-muted-foreground">Active Trips</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                Active Trips
+              </div>
             </div>
 
-            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-6">
-              <div className="text-3xl font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent mb-2">
+            {/* Happy Travelers */}
+            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-4 sm:p-6">
+              <div
+                className={`font-bold bg-gradient-to-r from-secondary to-accent bg-clip-text text-transparent mb-2 ${countTextClass}`}
+              >
                 <CountUp start={0} end={10000} duration={3} suffix="+" />
               </div>
-              <div className="text-sm text-muted-foreground">Happy Travelers</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                Happy Travelers
+              </div>
             </div>
 
-            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-6">
-              <div className="text-3xl font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent mb-2">
+            {/* Countries */}
+            <div className="bg-card/60 backdrop-blur-sm rounded-2xl p-4 sm:p-6">
+              <div
+                className={`font-bold bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent mb-2 ${countTextClass}`}
+              >
                 <CountUp start={0} end={50} duration={2.5} suffix="+" />
               </div>
-              <div className="text-sm text-muted-foreground">Countries</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">
+                Countries
+              </div>
             </div>
           </div>
         </div>
