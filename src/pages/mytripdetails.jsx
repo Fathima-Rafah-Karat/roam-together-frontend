@@ -40,7 +40,7 @@ import { getTripById } from "../api/tripsApi";
 import { getParticipants } from "../api/participantsApi";
 import { cancelTrip } from "../api/traveler/cancelTripApi";
 import { getImageUrl } from "../utils/getImageUrl";
-import {  toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 
 
 export default function TripDetails() {
@@ -57,48 +57,48 @@ export default function TripDetails() {
   const sliderRef = useRef(null);
   const [activeTab, setActiveTab] = useState("itinerary");
 
- 
+
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const [participantCount, setParticipantCount] = useState(0);
 
-console.log("hi");
-useEffect(() => {
-  const fetchCount = async () => {
-    if (!trip?._id) return;
+  console.log("hi");
+  useEffect(() => {
+    const fetchCount = async () => {
+      if (!trip?._id) return;
 
-    try {
-      const res = await getParticipantCount(trip._id); // use helper
-      if (res.success) {
-        setParticipantCount(res.count); // update state
+      try {
+        const res = await getParticipantCount(trip._id); // use helper
+        if (res.success) {
+          setParticipantCount(res.count); // update state
+        }
+        console.log("Participants data:", res.data); // optional for debugging
+      } catch (err) {
+        console.error("Error fetching participant count:", err);
       }
-      console.log("Participants data:", res.data); // optional for debugging
-    } catch (err) {
-      console.error("Error fetching participant count:", err);
-    }
-  };
+    };
 
-  fetchCount();
-}, [trip]);
-useEffect(() => {
-  const fetchTrip = async () => {
-    try {
-      const data = await getTripById(id); // use helper
-      setTrip(data || null);
-    } catch (err) {
-      console.error("Failed to fetch trip:", err);
-      toast({
-        title: "Error",
-        description: "Failed to fetch trip details",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchCount();
+  }, [trip]);
+  useEffect(() => {
+    const fetchTrip = async () => {
+      try {
+        const data = await getTripById(id); // use helper
+        setTrip(data || null);
+      } catch (err) {
+        console.error("Failed to fetch trip:", err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch trip details",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchTrip();
-}, [id, toast]);
+    fetchTrip();
+  }, [id, toast]);
 
 
   useEffect(() => {
@@ -133,31 +133,31 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", onKey);
   }, [lightboxOpen, trip, lightboxIndex]);
 
- const handleGroupChat = () => {
-  navigate(`/trip/${id}/chat`);
-};
+  const handleGroupChat = () => {
+    navigate(`/trip/${id}/chat`);
+  };
 
   const toggleDay = (day) => {
     setOpenDays((prev) => ({ ...prev, [day]: !prev[day] }));
   };
 
- useEffect(() => {
-  const fetchData = async () => {
-    if (!participantsOpen || !trip?._id) return;
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!participantsOpen || !trip?._id) return;
 
-    try {
-      const data = await getParticipants(trip._id); // use helper
-      if (data.success) {
-        setParticipants(data.data); // set participants
-        setParticipantCount(data.count || 0); // optional: update count
+      try {
+        const data = await getParticipants(trip._id); // use helper
+        if (data.success) {
+          setParticipants(data.data); // set participants
+          setParticipantCount(data.count || 0); // optional: update count
+        }
+      } catch (error) {
+        console.error("Error loading participants:", error);
       }
-    } catch (error) {
-      console.error("Error loading participants:", error);
-    }
-  };
+    };
 
-  fetchData();
-}, [participantsOpen, trip?._id]);
+    fetchData();
+  }, [participantsOpen, trip?._id]);
 
   const openLightboxAt = (index) => {
     if (!trip?.tripPhoto?.length) return;
@@ -203,46 +203,46 @@ useEffect(() => {
       Object.assign(inclusionsObj, trip.inclusions);
     }
   }
-const handleDeleteTrip = async () => {
-  try {
-    const confirm = await new Promise((resolve) => {
-      toast(
-        (t) => (
-          <div className="flex flex-col gap-2">
-            <span>Are you sure you want to cancel this trip?</span>
-            <div className="flex justify-end gap-2 mt-2">
-              <button
-                className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                onClick={() => { toast.dismiss(t.id); resolve(false); }}
-              >
-                No
-              </button>
-              <button
-                className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                onClick={() => { toast.dismiss(t.id); resolve(true); }}
-              >
-                Yes
-              </button>
+  const handleDeleteTrip = async () => {
+    try {
+      const confirm = await new Promise((resolve) => {
+        toast(
+          (t) => (
+            <div className="flex flex-col gap-2">
+              <span>Are you sure you want to cancel this trip?</span>
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                  onClick={() => { toast.dismiss(t.id); resolve(false); }}
+                >
+                  No
+                </button>
+                <button
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                  onClick={() => { toast.dismiss(t.id); resolve(true); }}
+                >
+                  Yes
+                </button>
+              </div>
             </div>
-          </div>
-        ),
-        { duration: Infinity }
-      );
-    });
+          ),
+          { duration: Infinity }
+        );
+      });
 
-    if (!confirm) return;
+      if (!confirm) return;
 
-    const res = await cancelTrip(trip._id);
+      const res = await cancelTrip(trip._id);
 
-    if (res.success) {
-      toast.success(res.message);
-      navigate(-1);
+      if (res.success) {
+        toast.success(res.message);
+        navigate(-1);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Failed to cancel trip");
     }
-  } catch (error) {
-    toast.error(error.response?.data?.message || error.message || "Failed to cancel trip");
-  }
-};
- 
+  };
+
   return (
     <div className="space-y-6">
       <Button
@@ -264,12 +264,12 @@ const handleDeleteTrip = async () => {
               >
                 {trip.tripPhoto?.length > 0 ? (
                   trip.tripPhoto.map((photo, index) => (
-                     <img
-      key={index}
-      src={getImageUrl(photo)}
-      alt={`${trip.title} ${index + 1}`}
-      className="h-96 w-full flex-shrink-0 object-cover rounded-lg snap-center"
-    />
+                    <img
+                      key={index}
+                      src={getImageUrl(photo)}
+                      alt={`${trip.title} ${index + 1}`}
+                      className="h-96 w-full flex-shrink-0 object-cover rounded-lg snap-center"
+                    />
                   ))
                 ) : (
                   <img
@@ -293,7 +293,7 @@ const handleDeleteTrip = async () => {
                       className="relative h-20 w-28 cursor-pointer rounded-lg overflow-hidden"
                     >
                       <img
-                         src={getImageUrl(photo)}
+                        src={getImageUrl(photo)}
                         className="h-full w-full object-cover opacity-70"
                         alt={`thumb-${index}`}
                       />
@@ -308,10 +308,9 @@ const handleDeleteTrip = async () => {
                   <img
                     key={index}
                     onClick={() => openLightboxAt(index)}
-                     src={getImageUrl(photo)}
-                    className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition-all ${
-                      currentSlide === index ? "ring-4 ring-primary" : "opacity-70"
-                    }`}
+                    src={getImageUrl(photo)}
+                    className={`h-20 w-28 object-cover rounded-lg cursor-pointer transition-all ${currentSlide === index ? "ring-4 ring-primary" : "opacity-70"
+                      }`}
                     alt={`thumb-${index}`}
                   />
                 );
@@ -423,11 +422,10 @@ const handleDeleteTrip = async () => {
               <div>
                 <h3 className="text-xl font-semibold mb-3">About This Trip</h3>
                 <p
-                  className={`text-muted-foreground leading-relaxed transition-all duration-300 ${
-                    showFullDescription
+                  className={`text-muted-foreground leading-relaxed transition-all duration-300 ${showFullDescription
                       ? "max-h-full"
                       : "line-clamp-5 overflow-hidden"
-                  }`}
+                    }`}
                 >
                   {trip.description}
                 </p>
@@ -490,17 +488,15 @@ const handleDeleteTrip = async () => {
 
               <div className="flex justify-evenly mb-6">
                 <button
-                  className={`rounded-lg px-6 py-3 text-xl text-white ${
-                    activeTab === "itinerary" ? "bg-blue-600" : "bg-blue-400"
-                  }`}
+                  className={`rounded-lg px-6 py-3 text-xl text-white ${activeTab === "itinerary" ? "bg-blue-600" : "bg-blue-400"
+                    }`}
                   onClick={() => setActiveTab("itinerary")}
                 >
                   Daily Itinerary
                 </button>
                 <button
-                  className={`rounded-lg px-6 py-3 text-xl text-white ${
-                    activeTab === "info" ? "bg-blue-600" : "bg-blue-400"
-                  }`}
+                  className={`rounded-lg px-6 py-3 text-xl text-white ${activeTab === "info" ? "bg-blue-600" : "bg-blue-400"
+                    }`}
                   onClick={() => setActiveTab("info")}
                 >
                   Trip Information
@@ -544,55 +540,62 @@ const handleDeleteTrip = async () => {
                 </div>
               )}
 
-             {activeTab === "info" && (
-  <div>
-    <h3 className="text-xl font-semibold mb-4">Trip Information</h3>
+              {activeTab === "info" && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Trip Information</h3>
 
-    <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
-      <thead className="bg-gray-100">
-        <tr>
-          <th className="p-3 text-left font-medium border-b">Inclusions</th>
-          <th className="p-3 text-left font-medium border-b">Exclusions</th>
-        </tr>
-      </thead>
+                  <table className="w-full border border-gray-300 rounded-lg overflow-hidden">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="p-3 text-left font-medium border-b">Inclusions</th>
+                        <th className="p-3 text-left font-medium border-b">Exclusions</th>
+                      </tr>
+                    </thead>
 
-      <tbody>
-        <tr>
-          {/* INCLUSIONS */}
-          <td className="p-3 align-top">
-            <ul className="list-disc ml-5">
-              {trip.inclusionspoint &&
-                trip.inclusionspoint
-                  .join(",") // ensure it's a single string
-                  .split("") // split into separate points
-                  .map((item, index) => (
-                    <li key={index} className="capitalize">
-                      {item.trim()}
-                    </li>
-                  ))}
-            </ul>
-          </td>
+                    <tbody>
+                      <tr>
+                        {/* INCLUSIONS */}
+                        <td className="p-3 align-top">
+                          <ul className="list-disc ml-5">
+                            {trip.inclusionspoint &&
+                              trip.inclusionspoint
+                                .join(",")
+                                .replace(/[\[\]"]/g, "")
+                                .split(",")
+                                .map((item) => item.trim())
+                                .filter((item) => item !== "" && item !== "." && item !== ",")
+                                .map((item, index) => (
+                                  <li key={index} className="capitalize">
+                                    {item}
+                                  </li>
+                                ))}
+                          </ul>
+                        </td>
 
 
-          {/* EXCLUSIONS */}
-          <td className="p-3 align-top">
-            <ul className="list-disc ml-5">
-              {trip.exclusionspoint &&
-                trip.exclusionspoint
-                  .join(",")
-                  .split("")
-                  .map((item, index) => (
-                    <li key={index} className="capitalize">
-                      {item.trim()}
-                    </li>
-                  ))}
-            </ul>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-)}
+
+                        {/* EXCLUSIONS */}
+                        <td className="p-3 align-top">
+                          <ul className="list-disc ml-5">
+                            {trip.exclusionspoint &&
+                              trip.exclusionspoint
+                                .join(",")
+                                .replace(/[\[\]"]/g, "")
+                                .split(",")
+                                .map((item) => item.trim())
+                                .filter((item) => item !== "" && item !== "." && item !== ",")
+                                .map((item, index) => (
+                                  <li key={index} className="capitalize">
+                                    {item}
+                                  </li>
+                                ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
             </CardContent>
           </Card>
@@ -624,25 +627,25 @@ const handleDeleteTrip = async () => {
                       <p className="text-center text-muted-foreground">No participants yet.</p>
                     ) : (
                       participants.map((p) => (
-                         <div className="flex items-center gap-3">
-    <Avatar>
-      {p.photo ? (
-        <AvatarImage
-           src={getImageUrl(p.photo)}
-          alt={p.name || p.username}
-        />
-      ) : null}
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            {p.photo ? (
+                              <AvatarImage
+                                src={getImageUrl(p.photo)}
+                                alt={p.name || p.username}
+                              />
+                            ) : null}
 
-      <AvatarFallback>
-        {(p.name || p.username)?.charAt(0).toUpperCase()}
-      </AvatarFallback>
-    </Avatar>
+                            <AvatarFallback>
+                              {(p.name || p.username)?.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
 
-    <div>
-      <p className="font-medium capitalize">{p.name ?? p.username}</p>
-      <p className="text-sm text-muted-foreground">{p.email}</p>
-    </div>
-  </div>
+                          <div>
+                            <p className="font-medium capitalize">{p.name ?? p.username}</p>
+                            <p className="text-sm text-muted-foreground">{p.email}</p>
+                          </div>
+                        </div>
                       ))
                     )}
                   </div>
@@ -661,7 +664,7 @@ const handleDeleteTrip = async () => {
 
               <Button
                 className="w-full bg-red-600 text-white hover:bg-red-700"
-               onClick={handleDeleteTrip}
+                onClick={handleDeleteTrip}
               >
                 Cancel
               </Button>
