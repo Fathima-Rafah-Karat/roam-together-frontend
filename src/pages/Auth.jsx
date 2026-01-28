@@ -254,10 +254,9 @@
 
 
 
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -279,11 +278,15 @@ import { getVerificationStatus } from "@/api/verifyApi";
 
 const signupSchema = z
   .object({
-    email: z.string().email(),
-    password: z.string().min(6),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
-    fullName: z.string().min(2),
-    phone: z.string().min(10),
+    fullName: z.string().min(2, "Full name is required"),
+    phone: z
+      .string()
+      .regex(/^\d+$/, "Phone number must contain only numbers")
+      .min(10, "Phone number must be at least 10 digits")
+      .max(15, "Phone number must be at most 15 digits"),
     role: z.enum(["Traveler", "Organizer"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -292,8 +295,8 @@ const signupSchema = z
   });
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 
 /* ---------------- COMPONENT ---------------- */
@@ -335,16 +338,9 @@ const Auth = () => {
 
         if (status === "approved") {
           navigate("/organizer/dashboard");
-          return;
-        }
-
-        if (status === "rejected") {
-          toast.error("Verification rejected. Please resubmit.");
+        } else {
           navigate("/verification");
-          return;
         }
-
-        navigate("/verification");
       } catch {
         navigate("/verification");
       }
@@ -390,8 +386,13 @@ const Auth = () => {
 
       toast.success("Account created successfully!");
       redirectUser(user.role, user._id);
+
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message);
+      if (err instanceof ZodError) {
+        toast.error(err.errors[0].message);
+      } else {
+        toast.error(err.response?.data?.message || "Signup failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -420,8 +421,13 @@ const Auth = () => {
 
       toast.success("Login successful!");
       redirectUser(user.role, user._id);
+
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message);
+      if (err instanceof ZodError) {
+        toast.error(err.errors[0].message);
+      } else {
+        toast.error(err.response?.data?.message || "Login failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -460,11 +466,11 @@ const Auth = () => {
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
                     <Label>Email</Label>
-                    <Input name="login-email" type="email" required   autoComplete="off"/>
+                    <Input name="login-email" type="email" required autoComplete="off" />
                   </div>
                   <div>
                     <Label>Password</Label>
-                    <Input name="login-password" type="password" required autoComplete="new-password"/>
+                    <Input name="login-password" type="password" required autoComplete="new-password" />
                   </div>
                   <Button className="w-full" disabled={loading}>
                     {loading ? "Logging In..." : "Log In"}
@@ -485,14 +491,20 @@ const Auth = () => {
                 <form onSubmit={handleSignup} className="space-y-4">
                   <Input name="full-name" placeholder="Full Name" required />
                   <Input name="signup-email" type="email" placeholder="Email" required autoComplete="off" />
-                  <Input name="phone" placeholder="Phone" required />
-                  <Input name="signup-password" type="password" placeholder="Password" required autoComplete="new-password"/>
+
                   <Input
-                    name="confirm-password"
-                    type="password"
-                    placeholder="Confirm Password"
+                    name="phone"
+                    placeholder="Phone"
                     required
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/\D/g, "");
+                    }}
                   />
+
+                  <Input name="signup-password" type="password" placeholder="Password" required autoComplete="new-password" />
+                  <Input name="confirm-password" type="password" placeholder="Confirm Password" required />
 
                   <div className="grid gap-2">
                     {roleOptions.map((role) => {
