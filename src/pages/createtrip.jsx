@@ -285,46 +285,68 @@ const handleSubmit = async (e) => {
 
                             {/* Trip Photos */}
                             {/* Trip Photos */}
-                            <div className="space-y-2">
-                                <Label className="font-bold">Trip Photos</Label>
+                           <div className="space-y-2">
+  <Label className="font-bold">Trip Photos</Label>
 
-                                {/* File input */}
-                                <Input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    onChange={(e) =>
-                                        setTripData({ ...tripData, tripPhoto: [...tripData.tripPhoto, ...Array.from(e.target.files)] })
-                                    }
-                                />
+  {/* File input */}
+  <Input
+    type="file"
+    multiple
+    accept="image/*"
+    onChange={(e) =>
+      setTripData({
+        ...tripData,
+        tripPhoto: [
+          ...tripData.tripPhoto,
+          ...Array.from(e.target.files),
+        ],
+      })
+    }
+  />
 
-                                {/* Photo preview grid */}
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
-                                    {tripData.tripPhoto.map((file, index) => {
-                                        const previewURL = typeof file === "string" ? file : URL.createObjectURL(file); // Handle existing URLs & new files
+  {/* Photo preview grid */}
+  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
+    {tripData.tripPhoto.map((file, index) => {
+      const previewURL =
+        file instanceof File
+          ? URL.createObjectURL(file)
+          : getImageUrl(file);
 
-                                        return (
-                                            <div key={index} className="relative w-full h-24 rounded-lg overflow-hidden border border-gray-200">
-                                                <img
-                                                    src={previewURL}
-                                                    alt={`Trip Photo ${index + 1}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    className="absolute top-1 right-1 bg-red-500 rounded-full p-1 text-white hover:bg-red-600"
-                                                    onClick={() => {
-                                                        const updatedPhotos = tripData.tripPhoto.filter((_, i) => i !== index);
-                                                        setTripData({ ...tripData, tripPhoto: updatedPhotos });
-                                                    }}
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+      return (
+        <div
+          key={index}
+          className="relative w-full h-24 rounded-lg overflow-hidden border border-gray-200"
+        >
+          <img
+            src={previewURL}
+            alt={`Trip Photo ${index + 1}`}
+            className="w-full h-full object-cover"
+            onError={(e) =>
+              (e.currentTarget.src = "/placeholder.jpg")
+            }
+          />
+
+          <button
+            type="button"
+            className="absolute top-1 right-1 bg-red-500 rounded-full p-1 text-white hover:bg-red-600"
+            onClick={() => {
+              const updatedPhotos = tripData.tripPhoto.filter(
+                (_, i) => i !== index
+              );
+              setTripData({
+                ...tripData,
+                tripPhoto: updatedPhotos,
+              });
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
 
 
                             {/* Inclusions */}
