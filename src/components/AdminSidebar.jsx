@@ -35,34 +35,40 @@ export function AdminSidebar() {
   const { open, toggleSidebar } = useSidebar(); 
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    toast(
-      (t) => (
-        <div className="flex flex-col gap-2">
-          <div>Are you sure you want to logout?</div>
-          <div className="flex justify-end gap-2">
-            <button
-              className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
-              onClick={() => toast.dismiss(t.id)}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              onClick={() => {
-                localStorage.clear();
-                toast.dismiss(t.id);
-                navigate("/");
-              }}
-            >
-              Logout
-            </button>
-          </div>
+ const handleLogout = () => {
+  toast(
+    (t) => (
+      <div className="flex flex-col gap-2">
+        <div>Are you sure you want to logout?</div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
+            onClick={() => {
+              localStorage.clear();
+              toast.dismiss(t.id);
+
+              navigate("/", { replace: true });
+
+              // force UI refresh
+              window.location.reload();
+            }}
+          >
+            Logout
+          </button>
         </div>
-      ),
-      { duration: Infinity }
-    );
-  };
+      </div>
+    ),
+    { duration: Infinity }
+  );
+};
 
   return (
     <>

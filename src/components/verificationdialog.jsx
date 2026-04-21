@@ -48,7 +48,7 @@ export function VerificationDialog({
       onOpenChange(false);    // close modal
     } catch (err) {
       console.error("Verification Error:", err);
-      toast.error(err.response?.data?.message || "Failed to submit verification");
+    //   toast.error(err.response?.data?.message || "Failed to submit verification");
     } finally {
       setUploading(false);
     }
