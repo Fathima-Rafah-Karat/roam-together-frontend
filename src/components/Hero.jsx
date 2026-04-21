@@ -326,35 +326,40 @@ const Hero = () => {
             </div>
           </div>
         </div>
-        <div className="fixed right-10"><RiRobot2Fill className="text-4xl text-blue-500" onClick={() => setShowChat(!showChat)} /></div>
-        {showChat && (
-          <div className="fixed right-10 bottom-24 w-80 sm:w-96 h-[400px] bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden z-50">
+      </div>
 
-            {/* Header */}
-            <div className=" bg-blue-500 text-white p-3 font-semibold flex justify-between items-center">
-              <span>How can I help you?</span>
-              <button onClick={() => setShowChat(false)}><IoCloseSharp/></button>
-            </div>
-            <div className="flex-1 p-3 overflow-y-auto text-sm space-y-2">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`p-2 rounded-lg max-w-[80%] ${msg.sender === "user"
-                    ? "bg-blue-500 text-white ml-auto"
-                    : "bg-gray-200 text-black"
-                    }`}
-                >
-                 <p className="whitespace-pre-line">
-                    {msg.text}
-                  </p>
-                </div>
-              ))}
+      {/* Moved outside the z-10 container to stay on top while scrolling */}
+      <div className="fixed right-10 bottom-10 z-[100]">
+        <RiRobot2Fill className="text-4xl text-blue-500 cursor-pointer" onClick={() => setShowChat(!showChat)} />
+      </div>
 
-              {loading && (
-                <div className="text-gray-400 text-xs">Typing...</div>
-              )}
-            </div>
-            <div className="flex flex-row gap-2 mx-2 mb-2">
+      {showChat && (
+        <div className="fixed right-10 bottom-24 w-80 sm:w-96 h-[400px] bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden z-[100]">
+          {/* Header */}
+          <div className="bg-blue-500 text-white p-3 font-semibold flex justify-between items-center">
+            <span>How can I help you?</span>
+            <button onClick={() => setShowChat(false)}><IoCloseSharp/></button>
+          </div>
+          <div className="flex-1 p-3 overflow-y-auto text-sm space-y-2">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`p-2 rounded-lg max-w-[80%] ${msg.sender === "user"
+                  ? "bg-blue-500 text-white ml-auto"
+                  : "bg-gray-200 text-black"
+                  }`}
+              >
+                <p className="whitespace-pre-line">
+                  {msg.text}
+                </p>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="text-gray-400 text-xs">Typing...</div>
+            )}
+          </div>
+          <div className="flex flex-row gap-2 mx-2 mb-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -371,9 +376,8 @@ const Hero = () => {
               Send
             </button>
           </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 };
