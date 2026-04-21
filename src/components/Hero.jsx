@@ -329,13 +329,13 @@ const Hero = () => {
       </div>
 
       {/* Moved outside the z-10 container to stay on top while scrolling */}
-      <div className="fixed right-10 bottom-10 z-[100]">
+      {/* <div className="fixed right-10 bottom-10 z-[100]">
         <RiRobot2Fill className="text-4xl text-blue-500 cursor-pointer" onClick={() => setShowChat(!showChat)} />
       </div>
 
       {showChat && (
         <div className="fixed right-10 bottom-24 w-80 sm:w-96 h-[400px] bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden z-[100]">
-          {/* Header */}
+        
           <div className="bg-blue-500 text-white p-3 font-semibold flex justify-between items-center">
             <span>How can I help you?</span>
             <button onClick={() => setShowChat(false)}><IoCloseSharp/></button>
@@ -377,7 +377,7 @@ const Hero = () => {
             </button>
           </div>
         </div>
-      )}
+      )} */}
     </section>
   );
 };
