@@ -135,12 +135,21 @@ import CountUp from "react-countup";
 import heroImage from "@/assets/hero-travel.jpg";
 import { toast } from "react-hot-toast";
 import { getVerificationStatus } from "../api/verifyApi";
+import { RiRobot2Fill } from "react-icons/ri";
+import { useState } from "react";
+import { chat } from "../api/chatbot/chat";
+import { IoCloseSharp } from "react-icons/io5";
+
 
 const Hero = () => {
   const navigate = useNavigate();
 
   // 🔁 Toggle this
   const isResponsive = true; // false = non-responsive
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleCreateTrip = async () => {
     const token = localStorage.getItem("token");
@@ -177,7 +186,7 @@ const Hero = () => {
         navigate("/createtrip");
       }
     } catch (error) {
-      toast.error("Verification check failed");
+      // toast.error("Verification check failed");
       navigate("/verification");
     }
   };
@@ -187,6 +196,35 @@ const Hero = () => {
     ? "text-xl sm:text-2xl md:text-3xl lg:text-4xl"
     : "text-3xl";
 
+ const handleSend = async () => {
+  if (!input.trim()) return;
+
+  const userMessage = { sender: "user", text: input };
+  setMessages((prev) => [...prev, userMessage]);
+  setLoading(true);
+
+  try {
+    const res = await chat({ text: input });
+    console.log("API response:", res.data);
+
+    const botMessage = {
+      sender: "bot",
+      text: res?.data?.botMessage?.text || "No response",
+    };
+
+    setMessages((prev) => [...prev, botMessage]);
+  } catch (error) {
+    console.error("Chat error:", error.response || error.message);
+
+    setMessages((prev) => [
+      ...prev,
+      { sender: "bot", text: "Something went wrong 😢" },
+    ]);
+  }
+
+  setInput("");
+  setLoading(false);
+};
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
       {/* Background */}
@@ -288,6 +326,53 @@ const Hero = () => {
             </div>
           </div>
         </div>
+        <div className="fixed right-10"><RiRobot2Fill className="text-4xl text-blue-500" onClick={() => setShowChat(!showChat)} /></div>
+        {showChat && (
+          <div className="fixed right-10 bottom-24 w-80 sm:w-96 h-[400px] bg-white shadow-2xl rounded-2xl flex flex-col overflow-hidden z-50">
+
+            {/* Header */}
+            <div className=" bg-blue-500 text-white p-3 font-semibold flex justify-between items-center">
+              <span>How can I help you?</span>
+              <button onClick={() => setShowChat(false)}><IoCloseSharp/></button>
+            </div>
+            <div className="flex-1 p-3 overflow-y-auto text-sm space-y-2">
+              {messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`p-2 rounded-lg max-w-[80%] ${msg.sender === "user"
+                    ? "bg-blue-500 text-white ml-auto"
+                    : "bg-gray-200 text-black"
+                    }`}
+                >
+                 <p className="whitespace-pre-line">
+                    {msg.text}
+                  </p>
+                </div>
+              ))}
+
+              {loading && (
+                <div className="text-gray-400 text-xs">Typing...</div>
+              )}
+            </div>
+            <div className="flex flex-row gap-2 mx-2 mb-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              type="text"
+              placeholder="Type a message..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-4 text-sm "
+            />
+
+            <button
+              onClick={handleSend}
+              className="bg-blue-500 text-white px-3 rounded-lg"
+            >
+              Send
+            </button>
+          </div>
+          </div>
+        )}
       </div>
     </section>
   );
